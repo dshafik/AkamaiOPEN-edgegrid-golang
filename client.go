@@ -30,7 +30,9 @@ type Client struct {
 	// User agent for client
 	UserAgent string
 
-	Config Config
+	Config *Config
+
+	ConfigDnsV1 *ConfigDnsV1Service
 }
 
 type JSONBody map[string]interface{}
@@ -58,9 +60,18 @@ func NewClient(httpClient *http.Client) *Client {
 		Client: *httpClient,
 		UserAgent: "Akamai-Open-Edgegrid-golang/" + libraryVersion +
 			" golang/" + strings.TrimPrefix(runtime.Version(), "go"),
+		Config: config,
 	}
 
-	return client
+	baseUrl, err := url.Parse("https://" + config.Host)
+	if err != nil {
+		return nil, err
+	}
+
+	client.BaseURL = baseUrl
+
+	client.ConfigDnsV1 = NewConfigDnsV1Service(client, config)
+	return client, nil
 }
 
 // NewRequest creates an API request. A relative URL can be provided in urlStr, which will be resolved to the
@@ -128,7 +139,13 @@ func (c *Client) Get(url string) (*Response, error) {
 		return nil, err
 	}
 
-	return response, nil
+	if response.IsError() {
+		return response, NewApiError(response)
+	}
+
+	res := Response(*response)
+
+	return &res, nil
 }
 
 func (c *Client) Post(url string, bodyType string, body interface{}) (*Response, error) {
