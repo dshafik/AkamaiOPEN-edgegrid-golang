@@ -189,3 +189,27 @@ func (r *Response) BodyJson(data interface{}) error {
 
 	return err
 }
+
+func (r *Response) IsInformational() bool {
+	return r.StatusCode > 99 && r.StatusCode < 200
+}
+
+func (r *Response) IsSuccess() bool {
+	return r.StatusCode > 199 && r.StatusCode < 300
+}
+
+func (r *Response) IsRedirection() bool {
+	return r.StatusCode > 299 && r.StatusCode < 400
+}
+
+func (r *Response) IsClientError() bool {
+	return r.StatusCode > 399 && r.StatusCode < 500
+}
+
+func (r *Response) IsServerError() bool {
+	return r.StatusCode > 499 && r.StatusCode < 600
+}
+
+func (r *Response) IsError() bool {
+	return r.StatusCode > 399 && r.StatusCode < 600
+}
