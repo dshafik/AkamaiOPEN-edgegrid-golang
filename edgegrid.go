@@ -204,7 +204,10 @@ func (c Config) AddRequestHeader(req *http.Request) *http.Request {
 	timestamp := makeEdgeTimeStamp()
 	nonce := createNonce()
 
-	req.Header.Set("Content-Type", "application/json")
+	if req.Header.Get("Content-Type") == "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
 	req.Header.Set("Authorization", c.createAuthHeader(req, timestamp, nonce))
 	return req
 }
