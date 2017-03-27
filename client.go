@@ -28,27 +28,15 @@ type Client struct {
 	// User agent for client
 	UserAgent string
 
-	Config Config
+	Config *Config
+
+	ConfigDnsV1 *ConfigDnsV1Service
 }
 
 type Response http.Response
 type JsonBody map[string]interface{}
 
-func New(httpClient *http.Client, config Config) (*Client, error) {
-	c := NewClient(httpClient)
-	c.Config = config
-
-	baseUrl, err := url.Parse("https://" + config.Host)
-
-	if err != nil {
-		return nil, err
-	}
-
-	c.BaseURL = baseUrl
-	return c, nil
-}
-
-func NewClient(httpClient *http.Client) *Client {
+func NewClient(httpClient *http.Client, config *Config) (*Client, error) {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
@@ -57,9 +45,18 @@ func NewClient(httpClient *http.Client) *Client {
 		Client: *httpClient,
 		UserAgent: "Akamai-Open-Edgegrid-golang/" + libraryVersion +
 			" golang/" + strings.TrimPrefix(runtime.Version(), "go"),
+		Config: config,
 	}
 
-	return client
+	baseUrl, err := url.Parse("https://" + config.Host)
+	if err != nil {
+		return nil, err
+	}
+
+	client.BaseURL = baseUrl
+
+	client.ConfigDnsV1 = NewConfigDnsV1Service(client, config)
+	return client, nil
 }
 
 // NewRequest creates an API request. A relative URL can be provided in urlStr, which will be resolved to the
@@ -122,6 +119,10 @@ func (c *Client) Get(url string) (resp *Response, err error) {
 
 	if err != nil {
 		return nil, err
+	}
+
+	if response.IsError() {
+		return response, NewApiError(response)
 	}
 
 	res := Response(*response)
