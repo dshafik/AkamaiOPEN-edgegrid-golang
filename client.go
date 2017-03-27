@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -64,7 +65,7 @@ func NewClient(httpClient *http.Client) *Client {
 
 // NewRequest creates an API request. A relative URL can be provided in urlStr, which will be resolved to the
 // BaseURL of the Client. If specified, the value pointed to by body is JSON encoded and included in as the request body.
-func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Request, error) {
+func (c *Client) NewRequest(method, urlStr string, body io.Reader) (*http.Request, error) {
 	var req *http.Request
 
 	urlStr = strings.TrimPrefix(urlStr, "/")
@@ -76,7 +77,7 @@ func (c *Client) NewRequest(method, urlStr string, body interface{}) (*http.Requ
 
 	u := c.BaseURL.ResolveReference(rel)
 
-	req, err = http.NewRequest(method, u.String(), nil)
+	req, err = http.NewRequest(method, u.String(), body)
 	if err != nil {
 		return nil, err
 	}
@@ -152,14 +153,13 @@ func (c *Client) PostForm(url string, data url.Values) (*Response, error) {
 	return c.Post(url, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
 }
 
-func (c *Client) PostJSON(url string, data interface{}) (*Response, error) {
 	buf := new(bytes.Buffer)
 	err := json.NewEncoder(buf).Encode(data)
 	if err != nil {
 		return nil, err
 	}
 
-	return c.Post(url, "application/json", buf)
+	return c.Post(url, "application/json", bytes.NewReader(jsonBody))
 }
 
 func (c *Client) Head(url string) (*Response, error) {
