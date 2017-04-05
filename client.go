@@ -193,7 +193,22 @@ func (c *Client) Head(url string) (*Response, error) {
 	return response, nil
 }
 
-func (r *Response) BodyJSON(data interface{}) error {
+func (c *Client) Delete(url string) (resp *Response, err error) {
+	req, _ := c.NewRequest("DELETE", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := c.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	res := Response(*response)
+	return &res, err
+}
+
+func (r *Response) BodyJson(data interface{}) error {
 	if data == nil {
 		return errors.New("You must pass in an interface{}")
 	}
