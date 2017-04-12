@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/xeipuuv/gojsonschema"
 	"io/ioutil"
+	"strings"
 )
 
 type PapiRules struct {
@@ -33,7 +34,7 @@ func (rules *PapiRules) UnmarshalJSON(b []byte) error {
 	for key, _ := range rules.Rules.Behaviors {
 		rules.Rules.Behaviors[key].parent = rules.Rules
 		if len(rules.Rules.Children) > 0 {
-			for _, v := range rules.Rules.getChildren() {
+			for _, v := range rules.Rules.getChildren(0) {
 				for _, j := range v.Behaviors {
 					j.parent = rules.Rules
 				}
@@ -43,6 +44,125 @@ func (rules *PapiRules) UnmarshalJSON(b []byte) error {
 
 	for key, _ := range rules.Rules.Criteria {
 		rules.Rules.Criteria[key].parent = rules.Rules
+	}
+
+	return nil
+}
+
+func (rules *PapiRules) PrintRules() error {
+	groups := &PapiGroup{
+		parent:      &PapiGroups{service: rules.service},
+		GroupId:     rules.GroupId,
+		ContractIds: []string{rules.ContractId},
+	}
+
+	properties, _ := groups.GetProperties(nil)
+	var property *PapiProperty
+	for _, property = range properties.Properties.Items {
+		if property.PropertyId == rules.PropertyId {
+			break
+		}
+	}
+
+	fmt.Println(property.PropertyName)
+
+	fmt.Println("├── Criteria")
+	for _, criteria := range rules.Rules.Criteria {
+		fmt.Printf("│   ├── %s\n", criteria.Name)
+		i := 0
+		for option, value := range *criteria.Options {
+			i++
+			if i < len(*criteria.Options) {
+				fmt.Printf("│   │   ├── %s: %#v\n", option, value)
+			} else {
+				fmt.Printf("│   │   └── %s: %#v\n", option, value)
+			}
+		}
+	}
+
+	fmt.Println("└── Behaviors")
+
+	prefix := "   │"
+	i := 0
+	for _, behavior := range rules.Rules.Behaviors {
+		i++
+		if i < len(rules.Rules.Behaviors) && len(rules.Rules.Children) != 0 {
+			fmt.Printf("   ├── Behavior: %s\n", behavior.Name)
+		} else {
+			fmt.Printf("   └── Behavior: %s\n", behavior.Name)
+		}
+
+		j := 0
+
+		for option, value := range *behavior.Options {
+			j++
+			if i == len(rules.Rules.Behaviors) && len(rules.Rules.Children) == 0 {
+				prefix = strings.TrimSuffix(prefix, "│")
+			}
+
+			if j < len(*behavior.Options) {
+				fmt.Printf("%s   ├── Option: %s: %#v\n", prefix, option, value)
+			} else {
+				fmt.Printf("%s   └── Option: %s: %#v\n", prefix, option, value)
+			}
+		}
+	}
+
+	if len(rules.Rules.Children) > 0 {
+		i := 0
+		children := rules.Rules.getChildren(0)
+		for _, child := range children {
+			i++
+			spacer := strings.TrimSuffix(strings.Repeat(prefix, child.depth), "│")
+			if i < len(children) {
+				fmt.Printf("%s├── Section: %s\n", spacer, child.Name)
+			} else {
+				fmt.Printf("%s└── Section: %s\n", spacer, child.Name)
+			}
+
+			spacer = strings.TrimSuffix(strings.Repeat(prefix, child.depth+1), "│")
+			j := 0
+			for _, behavior := range child.Behaviors {
+				j++
+				if j < len(child.Behaviors) {
+					fmt.Printf("%s├── Behavior: %s\n", spacer, behavior.Name)
+				} else {
+					//spacer = strings.TrimSuffix(spacer, "│   ") + "    "
+					fmt.Printf("%s└── Behavior: %s\n", spacer, behavior.Name)
+				}
+				space := strings.TrimSuffix(strings.Repeat(prefix, child.depth+2), "│")
+
+				fmt.Printf("%s├── Criteria\n", space)
+				i := 0
+				for _, criteria := range child.Criteria {
+					i++
+					if i < len(child.Criteria) {
+						fmt.Printf("   │%s├── %s\n", space, criteria.Name)
+					} else {
+						fmt.Printf("   │%s└── %s\n", space, criteria.Name)
+					}
+					k := 0
+					for option, value := range *criteria.Options {
+						k++
+						if k < len(*criteria.Options) {
+							fmt.Printf("   │   │%s├── %s: %#v\n", space, option, value)
+						} else {
+							fmt.Printf("   │   │%s└── %s: %#v\n", space, option, value)
+						}
+					}
+				}
+
+				k := 0
+				for option, value := range *behavior.Options {
+					k++
+					if k < len(*behavior.Options) {
+						fmt.Printf("%s├── Option: %s: %#v\n", space, option, value)
+					} else {
+						fmt.Printf("%s└── Option: %s: %#v\n", space, option, value)
+					}
+				}
+			}
+		}
 	}
 
 	return nil
@@ -61,12 +181,14 @@ type PapiRule struct {
 	CriteriaLocked bool             `json:criteriaLocked,omitempty`
 }
 
-func (rule *PapiRule) getChildren() []*PapiChildRule {
+func (rule *PapiRule) getChildren(depth int) []*PapiChildRule {
+	depth += 1
 	var children []*PapiChildRule
 	if len(rule.Children) > 0 {
-		children = rule.Children
 		for _, v := range rule.Children {
-			children = append(children, v.getChildren()...)
+			v.depth = depth
+			children = append(children, v)
+			children = append(children, v.getChildren(depth)...)
 		}
 	}
 
@@ -75,6 +197,7 @@ func (rule *PapiRule) getChildren() []*PapiChildRule {
 
 type PapiChildRule struct {
 	PapiRule
+	depth     int
 	Behaviors []*PapiBehavior `json:"behaviors,omitempty"`
 }
 
