@@ -130,10 +130,10 @@ func (c *Client) Get(url string) (resp *Response, err error) {
 	return &res, err
 }
 
-func (c *Client) Post(url string, bodyType string, body io.Reader) (resp *Response, err error) {
+func (c *Client) send(method string, url string, bodyType string, body io.Reader) (resp *Response, err error) {
 	var req *http.Request
 
-	req, err = c.NewRequest("POST", url, body)
+	req, err = c.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
 	}
@@ -152,6 +152,10 @@ func (c *Client) Post(url string, bodyType string, body io.Reader) (resp *Respon
 	return &res, err
 }
 
+func (c *Client) Post(url string, bodyType string, body io.Reader) (resp *Response, err error) {
+	return c.send("POST", url, bodyType, body)
+}
+
 func (c *Client) PostForm(url string, data url.Values) (resp *Response, err error) {
 	return c.Post(url, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
 }
@@ -163,6 +167,23 @@ func (c *Client) PostJson(url string, data interface{}) (resp *Response, err err
 	}
 
 	return c.Post(url, "application/json", bytes.NewReader(jsonBody))
+}
+
+func (c *Client) Put(url string, bodyType string, body io.Reader) (resp *Response, err error) {
+	return c.send("PUT", url, bodyType, body)
+}
+
+func (c *Client) PutForm(url string, data url.Values) (resp *Response, err error) {
+	return c.Put(url, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
+}
+
+func (c *Client) PutJson(url string, data interface{}) (resp *Response, err error) {
+	jsonBody, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Put(url, "application/json", bytes.NewReader(jsonBody))
 }
 
 func (c *Client) Head(url string) (resp *Response, err error) {
