@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	testFile  = "testdata.json"
+	testFile  = "../test/testdata.json"
 	timestamp = "20140321T19:34:21+0000"
 	nonce     = "nonce-xx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 	config    = Config{
@@ -109,7 +109,7 @@ func TestAddRequestHeader(t *testing.T) {
 }
 
 func TestInitConfigBroken(t *testing.T) {
-	testSample := "sample_edgerc"
+	testSample := "../test/sample_edgerc"
 	testConfigBroken := InitConfig(testSample, "broken")
 	assert.Equal(t, testConfigBroken.ClientSecret, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=")
 	assert.Equal(t, testConfigBroken.AccessToken, "xxxx-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx")
@@ -118,7 +118,7 @@ func TestInitConfigBroken(t *testing.T) {
 }
 
 func TestInitConfigUnparsable(t *testing.T) {
-	testSample := "edgerc_that_doesnt_parse"
+	testSample := "../test/edgerc_that_doesnt_parse"
 	assert.Panics(t, func() { InitConfig(testSample, "") }, "Fail: Should raise a PANIC")
 }
 
@@ -128,7 +128,7 @@ func TestInitConfigNotFound(t *testing.T) {
 }
 
 func TestInitConfigDashes(t *testing.T) {
-	testSample := "sample_edgerc"
+	testSample := "../test/sample_edgerc"
 	assert.Panics(t, func() { InitConfig(testSample, "dashes") }, "Fail: Should raise a PANIC")
 }
 
@@ -138,7 +138,7 @@ func TestInitConfigDefault(t *testing.T) {
 		"default",
 	}
 	for _, section := range configDefault {
-		testConfigDefault := InitConfig("sample_edgerc", section)
+		testConfigDefault := InitConfig("../test/sample_edgerc", section)
 		assert.Equal(t, testConfigDefault.ClientToken, "xxxx-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx")
 		assert.Equal(t, testConfigDefault.ClientSecret, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=")
 		assert.Equal(t, testConfigDefault.AccessToken, "xxxx-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx")
@@ -148,7 +148,7 @@ func TestInitConfigDefault(t *testing.T) {
 }
 
 func TestInitConfigSection(t *testing.T) {
-	testConfigDefault := InitConfig("sample_edgerc", "test")
+	testConfigDefault := InitConfig("../test/sample_edgerc", "test")
 	assert.Equal(t, testConfigDefault.Host, "test-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx.luna.akamaiapis.net/")
 	assert.Equal(t, testConfigDefault.ClientToken, "test-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx")
 	assert.Equal(t, testConfigDefault.ClientSecret, "testxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=")
@@ -158,7 +158,7 @@ func TestInitConfigSection(t *testing.T) {
 }
 
 func TestInitEdgeRcBroken(t *testing.T) {
-	testSample := "sample_edgerc"
+	testSample := "../test/sample_edgerc"
 	testConfigBroken, err := InitEdgeRc(testSample, "broken")
 	assert.NoError(t, err)
 	assert.Equal(t, testConfigBroken.ClientSecret, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=")
@@ -168,7 +168,7 @@ func TestInitEdgeRcBroken(t *testing.T) {
 }
 
 func TestInitEdgeRcUnparsable(t *testing.T) {
-	testSample := "edgerc_that_doesnt_parse"
+	testSample := "../test/edgerc_that_doesnt_parse"
 	_, err := InitEdgeRc(testSample, "")
 	assert.Error(t, err)
 }
@@ -180,7 +180,7 @@ func TestInitEdgeRcNotFound(t *testing.T) {
 }
 
 func TestInitEdgeRcDashes(t *testing.T) {
-	testSample := "sample_edgerc"
+	testSample := "../test/sample_edgerc"
 	_, err := InitEdgeRc(testSample, "dashes")
 	assert.Error(t, err)
 }
@@ -191,7 +191,7 @@ func TestInitEdgeRcDefault(t *testing.T) {
 		"default",
 	}
 	for _, section := range configDefault {
-		testConfigDefault, err := InitEdgeRc("sample_edgerc", section)
+		testConfigDefault, err := InitEdgeRc("../test/sample_edgerc", section)
 		assert.NoError(t, err)
 		assert.Equal(t, testConfigDefault.Host, "xxxx-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx.luna.akamaiapis.net/")
 		assert.Equal(t, testConfigDefault.ClientToken, "xxxx-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx")
@@ -203,7 +203,7 @@ func TestInitEdgeRcDefault(t *testing.T) {
 }
 
 func TestInitEdgeRcSection(t *testing.T) {
-	testConfigDefault, err := InitEdgeRc("sample_edgerc", "test")
+	testConfigDefault, err := InitEdgeRc("../test/sample_edgerc", "test")
 	assert.NoError(t, err)
 	assert.Equal(t, testConfigDefault.Host, "test-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx.luna.akamaiapis.net/")
 	assert.Equal(t, testConfigDefault.ClientToken, "test-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx")
@@ -258,7 +258,7 @@ func TestInitEnvMaxBody(t *testing.T) {
 	err = os.Setenv("AKAMAI_MAX_BODY", "42")
 	assert.NoError(t, err)
 
-	c, err := Init("sample_edgerc", "")
+	c, err := Init("../test/sample_edgerc", "")
 	assert.NoError(t, err)
 	assert.Equal(t, c.Host, "env-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx.luna.akamaiapis.net/")
 	assert.Equal(t, c.ClientToken, "env-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx")
@@ -279,7 +279,7 @@ func TestInitWithEnv(t *testing.T) {
 	err = os.Setenv("AKAMAI_ACCESS_TOKEN", "env-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx")
 	assert.NoError(t, err)
 
-	c, err := Init("sample_edgerc", "")
+	c, err := Init("../test/sample_edgerc", "")
 	assert.NoError(t, err)
 	assert.Equal(t, c.Host, "env-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx.luna.akamaiapis.net/")
 	assert.Equal(t, c.ClientToken, "env-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx")
@@ -292,7 +292,7 @@ func TestInitWithEnv(t *testing.T) {
 func TestInitWithoutEnv(t *testing.T) {
 	os.Clearenv()
 
-	c, err := Init("sample_edgerc", "")
+	c, err := Init("../test/sample_edgerc", "")
 	assert.NoError(t, err)
 	assert.Equal(t, c.Host, "xxxx-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx.luna.akamaiapis.net/")
 	assert.Equal(t, c.ClientToken, "xxxx-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx")
@@ -314,7 +314,7 @@ func TestInitWithSectionEnv(t *testing.T) {
 	err = os.Setenv("AKAMAI_TEST_ACCESS_TOKEN", "testenv-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx")
 	assert.NoError(t, err)
 
-	c, err := Init("sample_edgerc", "test")
+	c, err := Init("../test/sample_edgerc", "test")
 	assert.NoError(t, err)
 	assert.Equal(t, c.Host, "testenv-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx.luna.akamaiapis.net/")
 	assert.Equal(t, c.ClientToken, "testenv-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx")
@@ -335,7 +335,7 @@ func TestInitWithInvalidEdgeRcNotDefault(t *testing.T) {
 	err = os.Setenv("AKAMAI_ACCESS_TOKEN", "env-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx")
 	assert.NoError(t, err)
 
-	c, err := Init("edgerc_that_doesnt_parse", "test")
+	c, err := Init("../test/edgerc_that_doesnt_parse", "test")
 	assert.NoError(t, err)
 	assert.Equal(t, c.Host, "env-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx.luna.akamaiapis.net/")
 	assert.Equal(t, c.ClientToken, "env-xxxxxxxxxxxxxxxx-xxxxxxxxxxxxxxxx")
