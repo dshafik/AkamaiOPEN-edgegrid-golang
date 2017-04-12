@@ -148,7 +148,7 @@ func (c *Client) Get(url string) (*Response, error) {
 	return &res, nil
 }
 
-func (c *Client) Post(url string, bodyType string, body interface{}) (*Response, error) {
+func (c *Client) Post(url string, bodyType string, body io.Reader) (*Response, error) {
 	req, err := c.NewRequest("POST", url, body)
 	if err != nil {
 		return nil, err
@@ -166,7 +166,11 @@ func (c *Client) Post(url string, bodyType string, body interface{}) (*Response,
 	return response, nil
 }
 
-func (c *Client) PostForm(url string, data url.Values) (*Response, error) {
+func (c *Client) Post(url string, bodyType string, body io.Reader) (*Response, error) {
+	return c.send("POST", url, bodyType, body)
+}
+
+func (c *Client) PostForm(url string, data url.Values) (resp *Response, err error) {
 	return c.Post(url, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
 }
 
@@ -179,8 +183,25 @@ func (c *Client) PostForm(url string, data url.Values) (*Response, error) {
 	return c.Post(url, "application/json", bytes.NewReader(jsonBody))
 }
 
+func (c *Client) Put(url string, bodyType string, body io.Reader) (resp *Response, err error) {
+	return c.send("PUT", url, bodyType, body)
+}
+
+func (c *Client) PutForm(url string, data url.Values) (resp *Response, err error) {
+	return c.Put(url, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
+}
+
+func (c *Client) PutJson(url string, data interface{}) (resp *Response, err error) {
+	jsonBody, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Put(url, "application/json", bytes.NewReader(jsonBody))
+}
+
 func (c *Client) Head(url string) (*Response, error) {
-	req, err := c.NewRequest("HEAD", url, nil)
+	req, _ := c.NewRequest("HEAD", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +211,8 @@ func (c *Client) Head(url string) (*Response, error) {
 		return nil, err
 	}
 
-	return response, nil
+	res := Response(*response)
+	return &response, nil
 }
 
 func (c *Client) Delete(url string) (resp *Response, err error) {
