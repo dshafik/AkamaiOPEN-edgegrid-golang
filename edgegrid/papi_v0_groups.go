@@ -2,6 +2,7 @@ package edgegrid
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 )
 
@@ -43,6 +44,23 @@ func (groups *PapiGroups) AddGroup(newGroup *PapiGroup) {
 	newGroup.parent = groups
 
 	groups.Groups.Items = append(groups.Groups.Items, newGroup)
+}
+
+func (groups *PapiGroups) FindGroup(name string) (*PapiGroup, error) {
+	var group *PapiGroup
+	var groupFound bool
+	for _, group = range groups.Groups.Items {
+		if group.GroupName == name {
+			groupFound = true
+			break
+		}
+	}
+
+	if !groupFound {
+		return nil, errors.New(fmt.Sprintf("Unable to find group: \"%s\"", name))
+	}
+
+	return group, nil
 }
 
 type PapiGroup struct {
