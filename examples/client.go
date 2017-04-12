@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang"
+	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid"
 	"log"
 	"math/rand"
 	"net/url"
@@ -33,7 +33,7 @@ func main() {
 	config, err := edgegrid.Init("~/.edgerc", "default")
 	//config.Debug = true
 	if err == nil {
-		client, err := edgegrid.New(nil, config)
+		client, err := edgegrid.NewClient(nil, &config)
 		if err == nil {
 			fmt.Println("Requesting locations that support the diagnostic-tools API.")
 
