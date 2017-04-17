@@ -1,7 +1,7 @@
 package edgegrid
 
 import (
-	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -49,7 +49,7 @@ func (zone *DnsZone) Save() error {
 
 	if res.IsError() == true {
 		err := NewApiError(res)
-		return errors.New("Unable to save record (" + err.Error() + ")")
+		return fmt.Errorf("Unable to save record (%s)", err.Error())
 	}
 
 	for {
@@ -68,7 +68,7 @@ func (zone *DnsZone) Save() error {
 	}
 
 	if err != nil {
-		return errors.New("Unable to save record (" + err.Error() + ")")
+		return fmt.Errorf("Unable to save record (%s)", err.Error())
 	}
 
 	log.Printf("[INFO] Zone Saved")
