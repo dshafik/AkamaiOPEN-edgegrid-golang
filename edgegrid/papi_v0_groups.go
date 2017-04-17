@@ -1,9 +1,8 @@
 package edgegrid
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
+	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid/json"
 )
 
 type PapiGroups struct {
@@ -13,20 +12,26 @@ type PapiGroups struct {
 	Groups      struct {
 		Items []*PapiGroup `json:"items"`
 	} `json:"groups"`
+	Complete chan bool `json:"-"`
 }
 
-func (groups *PapiGroups) UnmarshalJSON(b []byte) error {
-	type PapiGroupsTemp PapiGroups
-	temp := &PapiGroupsTemp{service: groups.service}
+func (groups *PapiGroups) Init() {
+	groups.Complete = make(chan bool, 1)
+}
 
-	if err := json.Unmarshal(b, temp); err != nil {
-		return err
-	}
-	*groups = (PapiGroups)(*temp)
+func (groups *PapiGroups) PostUnmarshalJSON() error {
+	groups.Init()
 
-	for key, _ := range groups.Groups.Items {
+	for key, group := range groups.Groups.Items {
 		groups.Groups.Items[key].parent = groups
+		if group, ok := json.ImplementsPostJsonUnmarshaler(group); ok {
+			if err := group.(json.PostJsonUnmarshaler).PostUnmarshalJSON(); err != nil {
+				return err
+			}
+		}
 	}
+
+	groups.Complete <- true
 
 	return nil
 }
@@ -57,7 +62,7 @@ func (groups *PapiGroups) FindGroup(name string) (*PapiGroup, error) {
 	}
 
 	if !groupFound {
-		return nil, errors.New(fmt.Sprintf("Unable to find group: \"%s\"", name))
+		return nil, fmt.Errorf("Unable to find group: \"%s\"", name)
 	}
 
 	return group, nil
@@ -65,114 +70,43 @@ func (groups *PapiGroups) FindGroup(name string) (*PapiGroup, error) {
 
 type PapiGroup struct {
 	parent        *PapiGroups
-	GroupName     string   `json:"groupName"`
-	GroupId       string   `json:"groupId"`
-	ParentGroupId string   `json:"parentGroupId,omitempty"`
-	ContractIds   []string `json:"contractIds"`
+	GroupName     string    `json:"groupName"`
+	GroupId       string    `json:"groupId"`
+	ParentGroupId string    `json:"parentGroupId,omitempty"`
+	ContractIds   []string  `json:"contractIds"`
+	Complete      chan bool `json:"-"`
+}
+
+func NewPapiGroup(parent *PapiGroups) *PapiGroup {
+	group := &PapiGroup{
+		parent: parent,
+	}
+	group.Init()
+	return group
+}
+
+func (group *PapiGroup) Init() {
+	group.Complete = make(chan bool, 1)
+}
+
+func (group *PapiGroup) PostUnmarshalJSON() error {
+	group.Init()
+	group.Complete <- true
+	return nil
 }
 
 func (group *PapiGroup) GetProperties(contract *PapiContract) (*PapiProperties, error) {
-	if contract == nil {
-		contract = &PapiContract{ContractId: group.ContractIds[0]}
-	}
-	res, err := group.parent.service.client.Get(
-		fmt.Sprintf(
-			"/papi/v0/properties?groupId=%s&contractId=%s",
-			group.GroupId,
-			contract.ContractId,
-		),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if res.IsError() == true {
-		return nil, NewApiError(res)
-	}
-
-	properties := &PapiProperties{service: group.parent.service}
-	err = res.BodyJson(&properties)
-	if err != nil {
-		return nil, err
-	}
-
-	return properties, nil
+	return group.parent.service.GetProperties(contract, group)
 }
 
 func (group *PapiGroup) GetCPCodes(contract *PapiContract) (*PapiCpCodes, error) {
-	if contract == nil {
-		contract = &PapiContract{ContractId: group.ContractIds[0]}
-	}
-	res, err := group.parent.service.client.Get(
-		fmt.Sprintf(
-			"/papi/v0/cpcodes?groupId=%s&contractId=%s",
-			group.GroupId,
-			contract.ContractId,
-		),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if res.IsError() == true {
-		return nil, NewApiError(res)
-	}
-
-	cpcodes := &PapiCpCodes{service: group.parent.service}
-	err = res.BodyJson(&cpcodes)
-	if err != nil {
-		return nil, err
-	}
-
-	return cpcodes, nil
+	return group.parent.service.GetCPCodes(contract, group)
 }
 
 func (group *PapiGroup) GetEdgeHostnames(contract *PapiContract, options string) (*PapiEdgeHostnames, error) {
-	if contract == nil {
-		contract = &PapiContract{ContractId: group.ContractIds[0]}
-	}
-
-	if options != "" {
-		options = fmt.Sprintf("&options=%s", options)
-	}
-
-	res, err := group.parent.service.client.Get(
-		fmt.Sprintf(
-			"/papi/v0/edgehostnames?groupId=%s&contractId=%s%s",
-			group.GroupId,
-			contract.ContractId,
-			options,
-		),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if res.IsError() == true {
-		return nil, NewApiError(res)
-	}
-
-	edgeHostnames := &PapiEdgeHostnames{service: group.parent.service}
-	err = res.BodyJson(&edgeHostnames)
-	if err != nil {
-		return nil, err
-	}
-
-	return edgeHostnames, nil
+	return group.parent.service.GetEdgeHostnames(contract, group, options)
 }
 
 func (group *PapiGroup) NewProperty(contract *PapiContract) (*PapiProperty, error) {
-	if contract == nil {
-		contract = &PapiContract{ContractId: group.ContractIds[0]}
-	}
-
-	properties := &PapiProperties{service: group.parent.service}
-
-	property := &PapiProperty{
-		parent:   properties,
-		Contract: contract,
-		Group:    group,
-	}
-
-	return property, nil
+	return group.parent.service.NewProperty(contract, group)
 }

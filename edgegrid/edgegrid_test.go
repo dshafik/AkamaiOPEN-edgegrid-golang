@@ -2,7 +2,6 @@ package edgegrid
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid/json"
 	"github.com/stretchr/testify/assert"
 )
 
