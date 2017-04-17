@@ -1,8 +1,8 @@
 package edgegrid
 
 import (
-	"encoding/json"
 	"fmt"
+	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid/json"
 	"io/ioutil"
 	"strings"
 )

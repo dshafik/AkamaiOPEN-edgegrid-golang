@@ -1,6 +1,6 @@
 package edgegrid
 
-import "encoding/json"
+import "github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid/json"
 
 type PapiProducts struct {
 	service    *PapiV0Service
@@ -9,19 +9,26 @@ type PapiProducts struct {
 	Products   struct {
 		Items []*PapiProduct `json:"items"`
 	} `json:"products"`
+	Complete chan bool `json:"-"`
 }
 
-func (products *PapiProducts) UnmarshalJSON(b []byte) error {
-	type PapiProductsTemp PapiProducts
-	temp := &PapiProductsTemp{service: products.service}
+func NewPapiProducts(service *PapiV0Service) *PapiProducts {
+	products := &PapiProducts{service: service}
+	products.Init()
 
-	if err := json.Unmarshal(b, temp); err != nil {
-		return err
-	}
-	*products = (PapiProducts)(*temp)
+	return products
+}
 
-	for key, _ := range products.Products.Items {
+func (products *PapiProducts) Init() {
+	products.Complete = make(chan bool, 1)
+}
+
+func (products *PapiProducts) PostUnmarshalJSON() error {
+	for key, product := range products.Products.Items {
 		products.Products.Items[key].parent = products
+		if product, ok := json.ImplementsPostJsonUnmarshaler(product); ok {
+			product.(json.PostJsonUnmarshaler).PostUnmarshalJSON()
+		}
 	}
 
 	return nil
@@ -29,6 +36,24 @@ func (products *PapiProducts) UnmarshalJSON(b []byte) error {
 
 type PapiProduct struct {
 	parent      *PapiProducts
-	ProductName string `json:"productName"`
-	ProductId   string `json:"productId"`
+	ProductName string    `json:"productName"`
+	ProductId   string    `json:"productId"`
+	Complete    chan bool `json:"-"`
+}
+
+func NewPapiProduct(parent *PapiProducts) *PapiProduct {
+	product := &PapiProduct{parent: parent}
+	product.Init()
+
+	return product
+}
+
+func (product *PapiProduct) Init() {
+	product.Complete = make(chan bool, 1)
+}
+
+func (product *PapiProduct) PostUnmarshalJSON() error {
+	product.Init()
+	product.Complete <- true
+	return nil
 }

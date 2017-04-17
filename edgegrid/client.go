@@ -2,8 +2,9 @@ package edgegrid
 
 import (
 	"bytes"
-	"encoding/json"
+	gojson "encoding/json"
 	"errors"
+	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid/json"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -100,7 +101,8 @@ func (c *Client) NewRequest(method, urlStr string, body io.Reader) (*http.Reques
 
 func (c *Client) NewJSONRequest(method, urlStr string, body interface{}) (*http.Request, error) {
 	buf := new(bytes.Buffer)
-	err := json.NewEncoder(buf).Encode(body)
+	// Todo: Decide if we need to wrap this for pre/post
+	err := gojson.NewEncoder(buf).Encode(body)
 	if err != nil {
 		return nil, err
 	}
@@ -239,7 +241,7 @@ func (r *Response) BodyJson(data interface{}) error {
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(body, &data)
+	err = json.Unmarshal(body, data)
 
 	return err
 }

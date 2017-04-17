@@ -1,7 +1,6 @@
 package edgegrid
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/xeipuuv/gojsonschema"
 	"io/ioutil"
@@ -10,31 +9,36 @@ import (
 
 type PapiRules struct {
 	service         *PapiV0Service
-	AccountId       string    `json:"accountId"`
-	ContractId      string    `json:"contractId"`
-	GroupId         string    `json:"groupId"`
-	PropertyId      string    `json:"propertyId"`
-	PropertyVersion int       `json:"propertyVersion"`
-	Etag            string    `json:"etag"`
-	RuleFormat      string    `json:"ruleFormat"`
-	Rules           *PapiRule `json:"rules"`
+	AccountId       string            `json:"accountId"`
+	ContractId      string            `json:"contractId"`
+	GroupId         string            `json:"groupId"`
+	PropertyId      string            `json:"propertyId"`
+	PropertyVersion int               `json:"propertyVersion"`
+	Etag            string            `json:"etag"`
+	RuleFormat      string            `json:"ruleFormat"`
+	Rules           *PapiRule         `json:"rules"`
+	Errors          []*PapiRuleErrors `json:"errors,omitempty"`
+	Complete        chan bool         `json:"-"`
 }
 
-func (rules *PapiRules) UnmarshalJSON(b []byte) error {
-	type PapiRulesTemp PapiRules
-	temp := &PapiRulesTemp{service: rules.service}
+func NewPapiRules(service *PapiV0Service) *PapiRules {
+	rules := &PapiRules{service: service}
+	rules.Init()
 
-	fmt.Println(string(b))
+	return rules
+}
 
-	if err := json.Unmarshal(b, temp); err != nil {
-		return err
-	}
-	*rules = (PapiRules)(*temp)
+func (rules *PapiRules) Init() {
+	rules.Complete = make(chan bool, 1)
+}
+
+func (rules *PapiRules) PostUnmarshalJSON() error {
+	rules.Init()
 
 	for key, _ := range rules.Rules.Behaviors {
 		rules.Rules.Behaviors[key].parent = rules.Rules
 		if len(rules.Rules.Children) > 0 {
-			for _, v := range rules.Rules.getChildren(0) {
+			for _, v := range rules.Rules.GetChildren(0, 0) {
 				for _, j := range v.Behaviors {
 					j.parent = rules.Rules
 				}
@@ -46,6 +50,11 @@ func (rules *PapiRules) UnmarshalJSON(b []byte) error {
 		rules.Rules.Criteria[key].parent = rules.Rules
 	}
 
+	return nil
+}
+
+func (rules *PapiRules) PreMarshalJSON() error {
+	rules.Errors = nil
 	return nil
 }
 
@@ -110,7 +119,7 @@ func (rules *PapiRules) PrintRules() error {
 
 	if len(rules.Rules.Children) > 0 {
 		i := 0
-		children := rules.Rules.getChildren(0)
+		children := rules.Rules.GetChildren(0, 0)
 		for _, child := range children {
 			i++
 			spacer := strings.TrimSuffix(strings.Repeat(prefix, child.depth), "│")
@@ -168,43 +177,197 @@ func (rules *PapiRules) PrintRules() error {
 	return nil
 }
 
+func (rules *PapiRules) GetRules() []*PapiRule {
+	var flatRules []*PapiRule
+	flatRules = append(flatRules, rules.Rules)
+	for _, rules := range rules.Rules.GetChildren(0, 0) {
+		flatRules = append(flatRules, rules)
+	}
+
+	return flatRules
+}
+
+func (rules *PapiRules) Save() error {
+	// /papi/v0/properties/{propertyId}/versions/{propertyVersion}/rules/{?contractId,groupId}
+	res, err := rules.service.client.PutJson(
+		fmt.Sprintf(
+			"/papi/v0/properties/%s/versions/%d/rules/?contractId=%s&groupId=%s",
+			rules.PropertyId,
+			rules.PropertyVersion,
+			rules.ContractId,
+			rules.GroupId,
+		),
+		rules,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if res.IsError() {
+		return NewApiError(res)
+	}
+
+	res.BodyJson(rules)
+
+	if len(rules.Errors) != 0 {
+		return fmt.Errorf("There were %d errors. See rules.Errors for details.", len(rules.Errors))
+	}
+
+	return nil
+}
+
+func (rules *PapiRules) SetBehaviorOptions(path string, newOptions PapiOptionValue) error {
+	behavior, err := rules.FindBehavior(path)
+	if err != nil {
+		return err
+	}
+
+	behavior.Options = &newOptions
+	return nil
+}
+
+func (rules *PapiRules) AddBehaviorOptions(path string, newOptions PapiOptionValue) error {
+	behavior, err := rules.FindBehavior(path)
+	if err != nil {
+		return err
+	}
+
+	options := *behavior.Options
+	for key, value := range newOptions {
+		options[key] = value
+	}
+	behavior.Options = &options
+
+	return nil
+}
+
+func (rules *PapiRules) FindBehavior(path string) (*PapiBehavior, error) {
+	if len(path) <= 1 {
+		return nil, fmt.Errorf("Invalid Path: \"%s\"", path)
+	}
+
+	sep := "/"
+	segments := strings.Split(strings.ToLower(strings.TrimPrefix(path, sep)), sep)
+
+	if len(segments) == 1 {
+		for _, behavior := range rules.Rules.Behaviors {
+			if strings.ToLower(behavior.Name) == segments[0] {
+				return behavior, nil
+			}
+		}
+		return nil, fmt.Errorf("Path not found: \"%s\"", path)
+	}
+
+	currentRule := rules.Rules
+	i := 0
+	for _, segment := range segments {
+		i++
+		if i < len(segments) {
+			for _, rule := range currentRule.GetChildren(0, 1) {
+				if strings.ToLower(rule.Name) == segment {
+					currentRule = rule
+				}
+			}
+		} else {
+			for _, behavior := range currentRule.Behaviors {
+				if strings.ToLower(behavior.Name) == segment {
+					return behavior, nil
+				}
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("Path not found: \"%s\"", path)
+}
+
 type PapiRule struct {
 	parent  *PapiRules
+	depth   int
 	Name    string `json:"name"`
 	Options struct {
 		IsSecure bool `json:"is_secure,omitempty"`
 	} `json:"options,omitempty"`
-	Criteria       []*PapiCriteria  `json:"criteria,omitempty"`
-	Behaviors      []*PapiBehavior  `json:"behaviors"`
-	Children       []*PapiChildRule `json:"children,omitempty"`
-	Comment        string           `json:"comment,omitempty"`
-	CriteriaLocked bool             `json:criteriaLocked,omitempty`
+	Criteria       []*PapiCriteria `json:"criteria,omitempty"`
+	Behaviors      []*PapiBehavior `json:"behaviors,omitempty"`
+	Children       []*PapiRule     `json:"children,omitempty"`
+	Comment        string          `json:"comment,omitempty"`
+	CriteriaLocked bool            `json:criteriaLocked,omitempty`
+	Complete       chan bool       `json:"-"`
 }
 
-func (rule *PapiRule) getChildren(depth int) []*PapiChildRule {
+func NewPapiRule(parent *PapiRules) *PapiRule {
+	rule := &PapiRule{parent: parent}
+	rule.Init()
+
+	return rule
+}
+
+func (rule *PapiRule) Init() {
+	rule.Complete = make(chan bool, 1)
+}
+
+func (rule *PapiRule) PostUnmashalJSON() error {
+	rule.Init()
+	rule.Complete <- true
+
+	return nil
+}
+
+func (rule *PapiRule) GetChildren(depth int, limit int) []*PapiRule {
 	depth += 1
-	var children []*PapiChildRule
+
+	if limit != 0 && depth > limit {
+		return nil
+	}
+
+	var children []*PapiRule
 	if len(rule.Children) > 0 {
 		for _, v := range rule.Children {
 			v.depth = depth
 			children = append(children, v)
-			children = append(children, v.getChildren(depth)...)
+			children = append(children, v.GetChildren(depth, limit)...)
 		}
 	}
 
 	return children
 }
 
-type PapiChildRule struct {
-	PapiRule
-	depth     int
-	Behaviors []*PapiBehavior `json:"behaviors,omitempty"`
+func (rule *PapiRule) AddChildRule(child *PapiRule) {
+	rule.Children = append(rule.Children, child)
+}
+
+func (rule *PapiRule) AddCriteria(critera *PapiCriteria) {
+	rule.Criteria = append(rule.Criteria, critera)
+}
+
+func (rule *PapiRule) AddBehavior(behavior *PapiBehavior) {
+	rule.Behaviors = append(rule.Behaviors, behavior)
 }
 
 type PapiCriteria struct {
-	parent  *PapiRule
-	Name    string           `json:"name"`
-	Options *PapiOptionValue `json:"options"`
+	parent   *PapiRule
+	Name     string           `json:"name"`
+	Options  *PapiOptionValue `json:"options"`
+	Complete chan bool        `json:"-"`
+}
+
+func NewPapiCriteria(parent *PapiRule) *PapiCriteria {
+	criteria := &PapiCriteria{parent: parent}
+	criteria.Init()
+
+	return criteria
+}
+
+func (criteria *PapiCriteria) Init() {
+	criteria.Complete = make(chan bool, 1)
+}
+
+func (criteria *PapiCriteria) PostUnmashalJSON() error {
+	criteria.Init()
+	criteria.Complete <- true
+
+	return nil
 }
 
 func (criteria *PapiCriteria) validateOptions() error {
@@ -212,9 +375,28 @@ func (criteria *PapiCriteria) validateOptions() error {
 }
 
 type PapiBehavior struct {
-	parent  *PapiRule
-	Name    string           `json:"name"`
-	Options *PapiOptionValue `json:"options"`
+	parent   *PapiRule
+	Name     string           `json:"name"`
+	Options  *PapiOptionValue `json:"options"`
+	Complete chan bool        `json:"-"`
+}
+
+func NewPapiBehavior(parent *PapiRule) *PapiBehavior {
+	behavior := &PapiBehavior{parent: parent}
+	behavior.Init()
+
+	return behavior
+}
+
+func (behavior *PapiBehavior) Init() {
+	behavior.Complete = make(chan bool, 1)
+}
+
+func (behavior *PapiBehavior) PostUnmashalJSON() error {
+	behavior.Init()
+	behavior.Complete <- true
+
+	return nil
 }
 
 func (behavior *PapiBehavior) validateOptions() error {
@@ -235,6 +417,25 @@ type PapiAvailableCriteria struct {
 			SchemaLink string `json:"schemaLink"`
 		} `json:"items"`
 	} `json:"availableCriteria"`
+	Complete chan bool `json:"-"`
+}
+
+func NewPapiAvailableCriteria(service *PapiV0Service) *PapiAvailableCriteria {
+	availableCriteria := &PapiAvailableCriteria{service: service}
+	availableCriteria.Init()
+
+	return availableCriteria
+}
+
+func (availableCriteria *PapiAvailableCriteria) Init() {
+	availableCriteria.Complete = make(chan bool, 1)
+}
+
+func (availableCriteria *PapiAvailableCriteria) PostUnmashalJSON() error {
+	availableCriteria.Init()
+	availableCriteria.Complete <- true
+
+	return nil
 }
 
 type PapiAvailableBehaviors struct {
@@ -246,28 +447,57 @@ type PapiAvailableBehaviors struct {
 	Behaviors  struct {
 		Items []PapiAvailableBehavior `json:"items"`
 	} `json:"behaviors"`
+	Complete chan bool `json:"-"`
 }
 
-func (behaviors *PapiAvailableBehaviors) UnmarshalJSON(b []byte) error {
-	type PapiAvailableBehaviorsTemp PapiAvailableBehaviors
-	temp := &PapiAvailableBehaviorsTemp{service: behaviors.service}
+func NewPapiAvailableBehaviors(service *PapiV0Service) *PapiAvailableBehaviors {
+	availableBehaviors := &PapiAvailableBehaviors{service: service}
+	availableBehaviors.Init()
 
-	if err := json.Unmarshal(b, temp); err != nil {
-		return err
-	}
-	*behaviors = (PapiAvailableBehaviors)(*temp)
+	return availableBehaviors
+}
 
-	for key, _ := range behaviors.Behaviors.Items {
-		behaviors.Behaviors.Items[key].parent = behaviors
+func (availableBehaviors *PapiAvailableBehaviors) Init() {
+	availableBehaviors.Complete = make(chan bool, 1)
+}
+
+func (availableBehaviors *PapiAvailableBehaviors) PostUnmashalJSON() error {
+	availableBehaviors.Init()
+
+	for key, _ := range availableBehaviors.Behaviors.Items {
+		availableBehaviors.Behaviors.Items[key].parent = availableBehaviors
 	}
+
+	return nil
+
+	availableBehaviors.Complete <- true
 
 	return nil
 }
 
 type PapiAvailableBehavior struct {
 	parent     *PapiAvailableBehaviors
-	Name       string `json:"name"`
-	SchemaLink string `json:"schemaLink"`
+	Name       string    `json:"name"`
+	SchemaLink string    `json:"schemaLink"`
+	Complete   chan bool `json:"-"`
+}
+
+func NewPapiAvailableBehavior(parent *PapiAvailableBehaviors) *PapiAvailableBehavior {
+	availableBehavior := &PapiAvailableBehavior{parent: parent}
+	availableBehavior.Init()
+
+	return availableBehavior
+}
+
+func (availableBehavior *PapiAvailableBehavior) Init() {
+	availableBehavior.Complete = make(chan bool, 1)
+}
+
+func (availableBehavior *PapiAvailableBehavior) PostUnmashalJSON() error {
+	availableBehavior.Init()
+	availableBehavior.Complete <- true
+
+	return nil
 }
 
 func (behavior *PapiAvailableBehavior) GetSchema() (*gojsonschema.Schema, error) {
@@ -283,4 +513,31 @@ func (behavior *PapiAvailableBehavior) GetSchema() (*gojsonschema.Schema, error)
 	schema, err := gojsonschema.NewSchema(loader)
 
 	return schema, err
+}
+
+type PapiRuleErrors struct {
+	Type         string    `json:"type"`
+	Title        string    `json:"title"`
+	Detail       string    `json:"detail"`
+	Instance     string    `json:"instance"`
+	BehaviorName string    `json:"behaviorName"`
+	Complete     chan bool `json:"-"`
+}
+
+func NewPapiRuleErrors() *PapiRuleErrors {
+	ruleErrors := &PapiRuleErrors{}
+	ruleErrors.Init()
+
+	return ruleErrors
+}
+
+func (ruleErrors *PapiRuleErrors) Init() {
+	ruleErrors.Complete = make(chan bool, 1)
+}
+
+func (ruleErrors *PapiRuleErrors) PostUnmashalJSON() error {
+	ruleErrors.Init()
+	ruleErrors.Complete <- true
+
+	return nil
 }

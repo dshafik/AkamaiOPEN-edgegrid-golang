@@ -1,8 +1,6 @@
 package edgegrid
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 )
@@ -15,21 +13,23 @@ type PapiActivations struct {
 	Activations struct {
 		Items []*PapiActivation `json:"items"`
 	} `json:"activations"`
+	Complete chan bool `json:"-"`
 }
 
-func (activations *PapiActivations) UnmarshalJSON(b []byte) error {
-	type PapiActivationsTemp PapiActivations
-	temp := &PapiActivationsTemp{service: activations.service}
+func NewPapiActivations(service *PapiV0Service) *PapiActivations {
+	activations := &PapiActivations{service: service}
+	activations.Init()
 
-	if err := json.Unmarshal(b, temp); err != nil {
-		return err
-	}
-	*activations = (PapiActivations)(*temp)
+	return activations
+}
 
-	for key, _ := range activations.Activations.Items {
-		activations.Activations.Items[key].parent = activations
+func (activations *PapiActivations) Init() {
+	activations.Complete = make(chan bool, 1)
+}
 
-	}
+func (activations *PapiActivations) PostUnmashalJSON() error {
+	activations.Init()
+	activations.Complete <- true
 
 	return nil
 }
@@ -59,7 +59,7 @@ func (activations *PapiActivations) GetLatestActivation(network PapiNetworkValue
 	}
 
 	if latest == nil {
-		return nil, errors.New(fmt.Sprintf("No activation found (network: %s, status: %s)", network, status))
+		return nil, fmt.Errorf("No activation found (network: %s, status: %s)", network, status)
 	}
 
 	return latest, nil
@@ -81,6 +81,25 @@ type PapiActivation struct {
 	UpdateDate          time.Time           `json:"updateDate,omitempty"`
 	Note                string              `json:"note,omitempty"`
 	NotifyEmails        []string            `json:"notifyEmails"`
+	Complete            chan bool           `json:"-"`
+}
+
+func NewPapiActivation(parent *PapiActivations) *PapiActivation {
+	activation := &PapiActivation{parent: parent}
+	activation.Init()
+
+	return activation
+}
+
+func (activation *PapiActivation) Init() {
+	activation.Complete = make(chan bool, 1)
+}
+
+func (activation *PapiActivation) PostUnmashalJSON() error {
+	activation.Init()
+	activation.Complete <- true
+
+	return nil
 }
 
 type PapiActivationValue string
