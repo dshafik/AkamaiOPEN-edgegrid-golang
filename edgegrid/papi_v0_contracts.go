@@ -6,12 +6,12 @@ import (
 )
 
 type PapiContracts struct {
+	Resource
 	service   *PapiV0Service
 	AccountId string `json:"accountId"`
 	Contracts struct {
 		Items []*PapiContract `json:"items"`
 	} `json:"contracts"`
-	Complete chan bool `json:"-"`
 }
 
 func NewPapiContracts(service *PapiV0Service) *PapiContracts {
@@ -20,10 +20,6 @@ func NewPapiContracts(service *PapiV0Service) *PapiContracts {
 	}
 	contracts.Init()
 	return contracts
-}
-
-func (contracts *PapiContracts) Init() {
-	contracts.Complete = make(chan bool, 1)
 }
 
 func (contracts *PapiContracts) PostUnmarshalJSON() error {
@@ -44,10 +40,10 @@ func (contracts *PapiContracts) PostUnmarshalJSON() error {
 }
 
 type PapiContract struct {
+	Resource
 	parent           *PapiContracts
-	ContractId       string    `json:"contractId"`
-	ContractTypeName string    `json:"contractTypeName"`
-	Complete         chan bool `json:"-"`
+	ContractId       string `json:"contractId"`
+	ContractTypeName string `json:"contractTypeName"`
 }
 
 func NewPapiContract(parent *PapiContracts) *PapiContract {
@@ -58,14 +54,21 @@ func NewPapiContract(parent *PapiContracts) *PapiContract {
 	return contract
 }
 
-func (contract *PapiContract) Init() {
-	contract.Complete = make(chan bool, 1)
-}
+func (contract *PapiContract) GetContract() {
+	contracts, err := contract.parent.service.GetContracts()
+	if err != nil {
+		return
+	}
 
-func (contract *PapiContract) PostUnmarshalJSON() error {
-	contract.Init()
-	contract.Complete <- true
-	return nil
+	for _, c := range contracts.Contracts.Items {
+		if c.ContractId == contract.ContractId {
+			contract.parent = c.parent
+			contract.ContractTypeName = c.ContractTypeName
+			contract.Complete <- true
+			return
+		}
+	}
+	contract.Complete <- false
 }
 
 func (contract *PapiContract) GetProducts() (*PapiProducts, error) {

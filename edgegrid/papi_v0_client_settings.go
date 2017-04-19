@@ -1,9 +1,9 @@
 package edgegrid
 
 type PapiClientSettings struct {
+	Resource
 	service    *PapiV0Service
-	RuleFormat string    `json:"ruleFormat"`
-	Complete   chan bool `json:"-"`
+	RuleFormat string `json:"ruleFormat"`
 }
 
 func NewPapiClientSettings(service *PapiV0Service) *PapiClientSettings {
@@ -11,15 +11,4 @@ func NewPapiClientSettings(service *PapiV0Service) *PapiClientSettings {
 	clientSettings.Init()
 
 	return clientSettings
-}
-
-func (clientSettings *PapiClientSettings) Init() {
-	clientSettings.Complete = make(chan bool, 1)
-}
-
-func (clientSettings *PapiClientSettings) PostUnmashalJSON() error {
-	clientSettings.Init()
-	clientSettings.Complete <- true
-
-	return nil
 }

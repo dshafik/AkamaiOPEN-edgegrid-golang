@@ -8,6 +8,7 @@ import (
 )
 
 type PapiRules struct {
+	Resource
 	service         *PapiV0Service
 	AccountId       string            `json:"accountId"`
 	ContractId      string            `json:"contractId"`
@@ -18,7 +19,6 @@ type PapiRules struct {
 	RuleFormat      string            `json:"ruleFormat"`
 	Rules           *PapiRule         `json:"rules"`
 	Errors          []*PapiRuleErrors `json:"errors,omitempty"`
-	Complete        chan bool         `json:"-"`
 }
 
 func NewPapiRules(service *PapiV0Service) *PapiRules {
@@ -26,10 +26,6 @@ func NewPapiRules(service *PapiV0Service) *PapiRules {
 	rules.Init()
 
 	return rules
-}
-
-func (rules *PapiRules) Init() {
-	rules.Complete = make(chan bool, 1)
 }
 
 func (rules *PapiRules) PostUnmarshalJSON() error {
@@ -282,6 +278,7 @@ func (rules *PapiRules) FindBehavior(path string) (*PapiBehavior, error) {
 }
 
 type PapiRule struct {
+	Resource
 	parent  *PapiRules
 	depth   int
 	Name    string `json:"name"`
@@ -293,7 +290,6 @@ type PapiRule struct {
 	Children       []*PapiRule     `json:"children,omitempty"`
 	Comment        string          `json:"comment,omitempty"`
 	CriteriaLocked bool            `json:criteriaLocked,omitempty`
-	Complete       chan bool       `json:"-"`
 }
 
 func NewPapiRule(parent *PapiRules) *PapiRule {
@@ -301,17 +297,6 @@ func NewPapiRule(parent *PapiRules) *PapiRule {
 	rule.Init()
 
 	return rule
-}
-
-func (rule *PapiRule) Init() {
-	rule.Complete = make(chan bool, 1)
-}
-
-func (rule *PapiRule) PostUnmashalJSON() error {
-	rule.Init()
-	rule.Complete <- true
-
-	return nil
 }
 
 func (rule *PapiRule) GetChildren(depth int, limit int) []*PapiRule {
@@ -346,10 +331,10 @@ func (rule *PapiRule) AddBehavior(behavior *PapiBehavior) {
 }
 
 type PapiCriteria struct {
-	parent   *PapiRule
-	Name     string           `json:"name"`
-	Options  *PapiOptionValue `json:"options"`
-	Complete chan bool        `json:"-"`
+	Resource
+	parent  *PapiRule
+	Name    string           `json:"name"`
+	Options *PapiOptionValue `json:"options"`
 }
 
 func NewPapiCriteria(parent *PapiRule) *PapiCriteria {
@@ -359,26 +344,15 @@ func NewPapiCriteria(parent *PapiRule) *PapiCriteria {
 	return criteria
 }
 
-func (criteria *PapiCriteria) Init() {
-	criteria.Complete = make(chan bool, 1)
-}
-
-func (criteria *PapiCriteria) PostUnmashalJSON() error {
-	criteria.Init()
-	criteria.Complete <- true
-
-	return nil
-}
-
 func (criteria *PapiCriteria) validateOptions() error {
 	return nil
 }
 
 type PapiBehavior struct {
-	parent   *PapiRule
-	Name     string           `json:"name"`
-	Options  *PapiOptionValue `json:"options"`
-	Complete chan bool        `json:"-"`
+	Resource
+	parent  *PapiRule
+	Name    string           `json:"name"`
+	Options *PapiOptionValue `json:"options"`
 }
 
 func NewPapiBehavior(parent *PapiRule) *PapiBehavior {
@@ -388,17 +362,6 @@ func NewPapiBehavior(parent *PapiRule) *PapiBehavior {
 	return behavior
 }
 
-func (behavior *PapiBehavior) Init() {
-	behavior.Complete = make(chan bool, 1)
-}
-
-func (behavior *PapiBehavior) PostUnmashalJSON() error {
-	behavior.Init()
-	behavior.Complete <- true
-
-	return nil
-}
-
 func (behavior *PapiBehavior) validateOptions() error {
 	return nil
 }
@@ -406,6 +369,7 @@ func (behavior *PapiBehavior) validateOptions() error {
 type PapiOptionValue map[string]interface{}
 
 type PapiAvailableCriteria struct {
+	Resource
 	service           *PapiV0Service
 	ContractId        string `json:"contractId"`
 	GroupId           string `json:"groupId"`
@@ -417,7 +381,6 @@ type PapiAvailableCriteria struct {
 			SchemaLink string `json:"schemaLink"`
 		} `json:"items"`
 	} `json:"availableCriteria"`
-	Complete chan bool `json:"-"`
 }
 
 func NewPapiAvailableCriteria(service *PapiV0Service) *PapiAvailableCriteria {
@@ -427,18 +390,8 @@ func NewPapiAvailableCriteria(service *PapiV0Service) *PapiAvailableCriteria {
 	return availableCriteria
 }
 
-func (availableCriteria *PapiAvailableCriteria) Init() {
-	availableCriteria.Complete = make(chan bool, 1)
-}
-
-func (availableCriteria *PapiAvailableCriteria) PostUnmashalJSON() error {
-	availableCriteria.Init()
-	availableCriteria.Complete <- true
-
-	return nil
-}
-
 type PapiAvailableBehaviors struct {
+	Resource
 	service    *PapiV0Service
 	ContractId string `json:"contractId"`
 	GroupId    string `json:"groupId"`
@@ -447,7 +400,6 @@ type PapiAvailableBehaviors struct {
 	Behaviors  struct {
 		Items []PapiAvailableBehavior `json:"items"`
 	} `json:"behaviors"`
-	Complete chan bool `json:"-"`
 }
 
 func NewPapiAvailableBehaviors(service *PapiV0Service) *PapiAvailableBehaviors {
@@ -457,10 +409,6 @@ func NewPapiAvailableBehaviors(service *PapiV0Service) *PapiAvailableBehaviors {
 	return availableBehaviors
 }
 
-func (availableBehaviors *PapiAvailableBehaviors) Init() {
-	availableBehaviors.Complete = make(chan bool, 1)
-}
-
 func (availableBehaviors *PapiAvailableBehaviors) PostUnmashalJSON() error {
 	availableBehaviors.Init()
 
@@ -468,18 +416,16 @@ func (availableBehaviors *PapiAvailableBehaviors) PostUnmashalJSON() error {
 		availableBehaviors.Behaviors.Items[key].parent = availableBehaviors
 	}
 
-	return nil
-
 	availableBehaviors.Complete <- true
 
 	return nil
 }
 
 type PapiAvailableBehavior struct {
+	Resource
 	parent     *PapiAvailableBehaviors
-	Name       string    `json:"name"`
-	SchemaLink string    `json:"schemaLink"`
-	Complete   chan bool `json:"-"`
+	Name       string `json:"name"`
+	SchemaLink string `json:"schemaLink"`
 }
 
 func NewPapiAvailableBehavior(parent *PapiAvailableBehaviors) *PapiAvailableBehavior {
@@ -487,17 +433,6 @@ func NewPapiAvailableBehavior(parent *PapiAvailableBehaviors) *PapiAvailableBeha
 	availableBehavior.Init()
 
 	return availableBehavior
-}
-
-func (availableBehavior *PapiAvailableBehavior) Init() {
-	availableBehavior.Complete = make(chan bool, 1)
-}
-
-func (availableBehavior *PapiAvailableBehavior) PostUnmashalJSON() error {
-	availableBehavior.Init()
-	availableBehavior.Complete <- true
-
-	return nil
 }
 
 func (behavior *PapiAvailableBehavior) GetSchema() (*gojsonschema.Schema, error) {
@@ -516,12 +451,12 @@ func (behavior *PapiAvailableBehavior) GetSchema() (*gojsonschema.Schema, error)
 }
 
 type PapiRuleErrors struct {
-	Type         string    `json:"type"`
-	Title        string    `json:"title"`
-	Detail       string    `json:"detail"`
-	Instance     string    `json:"instance"`
-	BehaviorName string    `json:"behaviorName"`
-	Complete     chan bool `json:"-"`
+	Resource
+	Type         string `json:"type"`
+	Title        string `json:"title"`
+	Detail       string `json:"detail"`
+	Instance     string `json:"instance"`
+	BehaviorName string `json:"behaviorName"`
 }
 
 func NewPapiRuleErrors() *PapiRuleErrors {
@@ -529,15 +464,4 @@ func NewPapiRuleErrors() *PapiRuleErrors {
 	ruleErrors.Init()
 
 	return ruleErrors
-}
-
-func (ruleErrors *PapiRuleErrors) Init() {
-	ruleErrors.Complete = make(chan bool, 1)
-}
-
-func (ruleErrors *PapiRuleErrors) PostUnmashalJSON() error {
-	ruleErrors.Init()
-	ruleErrors.Complete <- true
-
-	return nil
 }

@@ -6,22 +6,22 @@ import (
 )
 
 type PapiGroups struct {
+	Resource
 	service     *PapiV0Service
 	AccountId   string `json:"accountId"`
 	AccountName string `json:"accountName"`
 	Groups      struct {
 		Items []*PapiGroup `json:"items"`
 	} `json:"groups"`
-	Complete chan bool `json:"-"`
 }
 
-func (groups *PapiGroups) Init() {
-	groups.Complete = make(chan bool, 1)
+func NewPapiGroups(service *PapiV0Service) *PapiGroups {
+	groups := &PapiGroups{service: service}
+	return groups
 }
 
 func (groups *PapiGroups) PostUnmarshalJSON() error {
 	groups.Init()
-
 	for key, group := range groups.Groups.Items {
 		groups.Groups.Items[key].parent = groups
 		if group, ok := json.ImplementsPostJsonUnmarshaler(group); ok {
@@ -69,12 +69,12 @@ func (groups *PapiGroups) FindGroup(name string) (*PapiGroup, error) {
 }
 
 type PapiGroup struct {
+	Resource
 	parent        *PapiGroups
-	GroupName     string    `json:"groupName"`
-	GroupId       string    `json:"groupId"`
-	ParentGroupId string    `json:"parentGroupId,omitempty"`
-	ContractIds   []string  `json:"contractIds"`
-	Complete      chan bool `json:"-"`
+	GroupName     string   `json:"groupName"`
+	GroupId       string   `json:"groupId"`
+	ParentGroupId string   `json:"parentGroupId,omitempty"`
+	ContractIds   []string `json:"contractIds"`
 }
 
 func NewPapiGroup(parent *PapiGroups) *PapiGroup {
@@ -85,22 +85,32 @@ func NewPapiGroup(parent *PapiGroups) *PapiGroup {
 	return group
 }
 
-func (group *PapiGroup) Init() {
-	group.Complete = make(chan bool, 1)
-}
+func (group *PapiGroup) GetGroup() {
+	groups, err := group.parent.service.GetGroups()
+	if err != nil {
+		return
+	}
 
-func (group *PapiGroup) PostUnmarshalJSON() error {
-	group.Init()
-	group.Complete <- true
-	return nil
+	for _, g := range groups.Groups.Items {
+		if g.GroupId == group.GroupId {
+			group.parent = groups
+			group.ContractIds = g.ContractIds
+			group.GroupName = g.GroupName
+			group.ParentGroupId = g.ParentGroupId
+			group.Complete <- true
+			return
+		}
+	}
+
+	group.Complete <- false
 }
 
 func (group *PapiGroup) GetProperties(contract *PapiContract) (*PapiProperties, error) {
 	return group.parent.service.GetProperties(contract, group)
 }
 
-func (group *PapiGroup) GetCPCodes(contract *PapiContract) (*PapiCpCodes, error) {
-	return group.parent.service.GetCPCodes(contract, group)
+func (group *PapiGroup) GetCpCodes(contract *PapiContract) (*PapiCpCodes, error) {
+	return group.parent.service.GetCpCodes(contract, group)
 }
 
 func (group *PapiGroup) GetEdgeHostnames(contract *PapiContract, options string) (*PapiEdgeHostnames, error) {

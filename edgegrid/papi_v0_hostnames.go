@@ -3,6 +3,7 @@ package edgegrid
 import "github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid/json"
 
 type PapiHostnames struct {
+	Resource
 	service         *PapiV0Service
 	AccountId       string `json:"accountId"`
 	ContractId      string `json:"contractId"`
@@ -13,7 +14,6 @@ type PapiHostnames struct {
 	Hostnames       struct {
 		Items []*PapiHostname `json:"items"`
 	} `json:"hostnames"`
-	Complete chan bool `json:"-"`
 }
 
 func NewPapiHostnames(service *PapiV0Service) *PapiHostnames {
@@ -21,10 +21,6 @@ func NewPapiHostnames(service *PapiV0Service) *PapiHostnames {
 	hostnames.Init()
 
 	return hostnames
-}
-
-func (hostnames *PapiHostnames) Init() {
-	hostnames.Complete = make(chan bool, 1)
 }
 
 func (hostnames *PapiHostnames) PostUnmarshalJSON() error {
@@ -45,20 +41,10 @@ func (hostnames *PapiHostnames) PostUnmarshalJSON() error {
 }
 
 type PapiHostname struct {
+	Resource
 	parent         *PapiHostnames
-	CnameType      string    `json:"cnameType"`
-	EdgeHostnameId string    `json:"edgeHostnameId"`
-	CnameFrom      string    `json:"cnameFrom"`
-	CnameTo        string    `json:"cnameTo,omitempty"`
-	Complete       chan bool `json:"-"`
-}
-
-func (hostname *PapiHostname) Init() {
-	hostname.Complete = make(chan bool, 1)
-}
-
-func (hostname *PapiHostname) PostUnmarshalJSON() error {
-	hostname.Init()
-	hostname.Complete <- true
-	return nil
+	CnameType      string `json:"cnameType"`
+	EdgeHostnameId string `json:"edgeHostnameId"`
+	CnameFrom      string `json:"cnameFrom"`
+	CnameTo        string `json:"cnameTo,omitempty"`
 }
