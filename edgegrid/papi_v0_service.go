@@ -113,7 +113,7 @@ func (papi *PapiV0Service) GetEdgeHostnames(contract *PapiContract, group *PapiG
 	return edgeHostnames, nil
 }
 
-func (papi *PapiV0Service) GetCPCodes(contract *PapiContract, group *PapiGroup) (*PapiCpCodes, error) {
+func (papi *PapiV0Service) GetCpCodes(contract *PapiContract, group *PapiGroup) (*PapiCpCodes, error) {
 	if contract == nil {
 		contract = &PapiContract{ContractId: group.ContractIds[0]}
 	}
@@ -182,13 +182,7 @@ func (papi *PapiV0Service) NewProperty(contract *PapiContract, group *PapiGroup)
 	}
 
 	properties := &PapiProperties{service: group.parent.service}
-
-	property := &PapiProperty{
-		parent:   properties,
-		Contract: contract,
-		Group:    group,
-		Complete: make(chan bool, 1),
-	}
+	property := properties.NewProperty(contract, group)
 
 	return property, nil
 }

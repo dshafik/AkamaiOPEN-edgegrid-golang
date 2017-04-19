@@ -6,6 +6,7 @@ import (
 )
 
 type PapiVersions struct {
+	Resource
 	service      *PapiV0Service
 	PropertyId   string `json:"propertyId"`
 	PropertyName string `json:"propertyName"`
@@ -15,8 +16,7 @@ type PapiVersions struct {
 	Versions     struct {
 		Items []*PapiVersion `json:"items"`
 	} `json:"versions"`
-	RuleFormat string    `json:"ruleFormat,omitempty"`
-	Complete   chan bool `json:"-"`
+	RuleFormat string `json:"ruleFormat,omitempty"`
 }
 
 func NewPapiVersions(service *PapiV0Service) *PapiVersions {
@@ -24,10 +24,6 @@ func NewPapiVersions(service *PapiV0Service) *PapiVersions {
 	version.Init()
 
 	return version
-}
-
-func (version *PapiVersions) Init() {
-	version.Complete = make(chan bool, 1)
 }
 
 func (versions *PapiVersions) PostUnmarshalJSON() error {
@@ -67,6 +63,7 @@ func (versions *PapiVersions) NewVersion(createFromVersion *PapiVersion, useEtag
 }
 
 type PapiVersion struct {
+	Resource
 	parent                *PapiVersions
 	PropertyVersion       int       `json:"propertyVersion,omitempty"`
 	UpdatedByUser         string    `json:"updatedByUser,omitempty"`
@@ -88,27 +85,24 @@ func NewPapiVersion(parent *PapiVersions) *PapiVersion {
 	return version
 }
 
-func (version *PapiVersion) Init() {
-	version.Complete = make(chan bool, 1)
-}
-
-func (version *PapiVersion) PostUnmashalJSON() error {
-	version.Init()
-	version.Complete <- true
-
-	return nil
-}
-
 func (version *PapiVersion) HasBeenActivated() (bool, error) {
 	properties := NewPapiProperties(version.parent.service)
 	property := NewPapiProperty(properties)
 	property.PropertyId = version.parent.PropertyId
 
-	property.Group = NewPapiGroup(nil)
+	property.Group = NewPapiGroup(NewPapiGroups(version.parent.service))
 	property.Group.GroupId = version.parent.GroupId
+	go property.Group.GetGroup()
 
-	property.Contract = NewPapiContract(nil)
+	property.Contract = NewPapiContract(NewPapiContracts(version.parent.service))
 	property.Contract.ContractId = version.parent.ContractId
+	go property.Contract.GetContract()
+
+	go (func(property *PapiProperty) {
+		contractCompleted := <-property.Contract.Complete
+		groupCompleted := <-property.Group.Complete
+		property.Complete <- (contractCompleted && groupCompleted)
+	})(property)
 
 	activations, err := property.GetActivations()
 	if err != nil {

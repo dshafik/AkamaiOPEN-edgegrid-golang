@@ -6,11 +6,11 @@ import (
 )
 
 type PapiProperties struct {
+	Resource
 	service    *PapiV0Service
 	Properties struct {
 		Items []*PapiProperty `json:"items"`
 	} `json:"properties"`
-	Complete chan bool `json:"-"`
 }
 
 func NewPapiProperties(service *PapiV0Service) *PapiProperties {
@@ -18,10 +18,6 @@ func NewPapiProperties(service *PapiV0Service) *PapiProperties {
 	properties.Init()
 
 	return properties
-}
-
-func (properties *PapiProperties) Init() {
-	properties.Complete = make(chan bool, 1)
 }
 
 func (properties *PapiProperties) PostUnmarshalJSON() error {
@@ -72,11 +68,23 @@ func (properties *PapiProperties) FindProperty(name string) (*PapiProperty, erro
 	return property, nil
 }
 
-func (properties *PapiProperties) NewProperty() PapiProperty {
-	return PapiProperty{parent: properties}
+func (properties *PapiProperties) NewProperty(contract *PapiContract, group *PapiGroup) *PapiProperty {
+	property := NewPapiProperty(properties)
+	property.Contract = contract
+	property.Group = group
+	go property.Contract.GetContract()
+	go property.Group.GetGroup()
+	go (func(property *PapiProperty) {
+		groupCompleted := <-property.Group.Complete
+		contractCompleted := <-property.Contract.Complete
+		property.Complete <- (groupCompleted && contractCompleted)
+	})(property)
+
+	return property
 }
 
 type PapiProperty struct {
+	Resource
 	parent            *PapiProperties
 	AccountId         string                 `json:"accountId,omitempty"`
 	Contract          *PapiContract          `json:"-"`
@@ -91,18 +99,12 @@ type PapiProperty struct {
 	Note              string                 `json:"note,omitempty"`
 	ProductId         string                 `json:"productId,omitempty"`
 	CloneFrom         *PapiClonePropertyFrom `json:"cloneFrom"`
-	Complete          chan bool              `json:"-"`
 }
 
-func NewPapiProperty(parent *PapiProperties) PapiProperty {
-	property := PapiProperty{parent: parent}
+func NewPapiProperty(parent *PapiProperties) *PapiProperty {
+	property := &PapiProperty{parent: parent}
 	property.Init()
-
 	return property
-}
-
-func (property *PapiProperty) Init() {
-	property.Complete = make(chan bool, 1)
 }
 
 func (property *PapiProperty) PreMarshalJSON() error {
@@ -220,45 +222,14 @@ func (property *PapiProperty) GetHostnames(version int) (*PapiHostnames, error) 
 func (property *PapiProperty) PostUnmarshalJSON() error {
 	property.Init()
 
-	property.Contract = NewPapiContract(nil)
+	property.Contract = NewPapiContract(&PapiContracts{service: property.parent.service})
 	property.Contract.ContractId = property.ContractId
 
-	property.Group = NewPapiGroup(nil)
+	property.Group = NewPapiGroup(&PapiGroups{service: property.parent.service})
 	property.Group.GroupId = property.GroupId
 
-	go (func(property *PapiProperty) {
-		groups, err := property.parent.service.GetGroups()
-		if err != nil {
-			return
-		}
-
-		for _, group := range groups.Groups.Items {
-			if group.GroupId == property.Group.GroupId {
-				property.Group.parent = group.parent
-				property.Group.ContractIds = group.ContractIds
-				property.Group.GroupName = group.GroupName
-				property.Group.ParentGroupId = group.ParentGroupId
-				property.Group.Complete <- true
-			}
-		}
-		property.Group.Complete <- false
-	})(property)
-
-	go (func(property *PapiProperty) {
-		contracts, err := property.parent.service.GetContracts()
-		if err != nil {
-			return
-		}
-
-		for _, contract := range contracts.Contracts.Items {
-			if contract.ContractId == property.Contract.ContractId {
-				property.Contract.parent = contract.parent
-				property.Contract.ContractTypeName = contract.ContractTypeName
-				property.Contract.Complete <- true
-			}
-		}
-		property.Contract.Complete <- false
-	})(property)
+	go property.Group.GetGroup()
+	go property.Contract.GetContract()
 
 	go (func(property *PapiProperty) {
 		contractComplete := <-property.Contract.Complete
@@ -303,11 +274,14 @@ func (property *PapiProperty) Save() error {
 	}
 
 	properties := &PapiProperties{service: property.parent.service}
-	res.BodyJson(properties)
+	err = res.BodyJson(properties)
+	if err != nil {
+		return err
+	}
 
 	newProperty := properties.Properties.Items[0]
 	newProperty.parent = property.parent
-	property.parent.Properties.Items = append(property.parent.Properties.Items, properties.Properties.Items...)
+	property.parent.Properties.Items = append(property.parent.Properties.Items, newProperty)
 
 	*property = *newProperty
 
@@ -337,11 +311,11 @@ func (property *PapiProperty) Delete() error {
 }
 
 type PapiClonePropertyFrom struct {
-	PropertyId           string    `json:"propertyId"`
-	Version              int       `json:"version"`
-	CopyHostnames        bool      `json:"copyHostnames,omitempty"`
-	CloneFromVersionEtag string    `json:"cloneFromVersionEtag,omitempty"`
-	Complete             chan bool `json:"-"`
+	Resource
+	PropertyId           string `json:"propertyId"`
+	Version              int    `json:"version"`
+	CopyHostnames        bool   `json:"copyHostnames,omitempty"`
+	CloneFromVersionEtag string `json:"cloneFromVersionEtag,omitempty"`
 }
 
 func NewPapiClonePropertyFrom() *PapiClonePropertyFrom {
@@ -349,15 +323,4 @@ func NewPapiClonePropertyFrom() *PapiClonePropertyFrom {
 	clonePropertyFrom.Init()
 
 	return clonePropertyFrom
-}
-
-func (clonePropertyFrom *PapiClonePropertyFrom) Init() {
-	clonePropertyFrom.Complete = make(chan bool, 1)
-}
-
-func (clonePropertyFrom *PapiClonePropertyFrom) PostUnmashalJSON() error {
-	clonePropertyFrom.Init()
-	clonePropertyFrom.Complete <- true
-
-	return nil
 }

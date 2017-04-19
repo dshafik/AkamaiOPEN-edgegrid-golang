@@ -6,6 +6,7 @@ import (
 )
 
 type PapiActivations struct {
+	Resource
 	service     *PapiV0Service
 	AccountId   string `json:"accountId"`
 	ContractId  string `json:"contractId"`
@@ -13,7 +14,6 @@ type PapiActivations struct {
 	Activations struct {
 		Items []*PapiActivation `json:"items"`
 	} `json:"activations"`
-	Complete chan bool `json:"-"`
 }
 
 func NewPapiActivations(service *PapiV0Service) *PapiActivations {
@@ -21,17 +21,6 @@ func NewPapiActivations(service *PapiV0Service) *PapiActivations {
 	activations.Init()
 
 	return activations
-}
-
-func (activations *PapiActivations) Init() {
-	activations.Complete = make(chan bool, 1)
-}
-
-func (activations *PapiActivations) PostUnmashalJSON() error {
-	activations.Init()
-	activations.Complete <- true
-
-	return nil
 }
 
 func (activations *PapiActivations) GetLatestProductionActivation(status PapiStatusValue) (*PapiActivation, error) {
@@ -66,6 +55,7 @@ func (activations *PapiActivations) GetLatestActivation(network PapiNetworkValue
 }
 
 type PapiActivation struct {
+	Resource
 	parent              *PapiActivations
 	ActivationId        string              `json:"activationId,omitempty"`
 	ActivationType      PapiActivationValue `json:"activationType,omitempty"`
@@ -81,7 +71,6 @@ type PapiActivation struct {
 	UpdateDate          time.Time           `json:"updateDate,omitempty"`
 	Note                string              `json:"note,omitempty"`
 	NotifyEmails        []string            `json:"notifyEmails"`
-	Complete            chan bool           `json:"-"`
 }
 
 func NewPapiActivation(parent *PapiActivations) *PapiActivation {
@@ -89,17 +78,6 @@ func NewPapiActivation(parent *PapiActivations) *PapiActivation {
 	activation.Init()
 
 	return activation
-}
-
-func (activation *PapiActivation) Init() {
-	activation.Complete = make(chan bool, 1)
-}
-
-func (activation *PapiActivation) PostUnmashalJSON() error {
-	activation.Init()
-	activation.Complete <- true
-
-	return nil
 }
 
 type PapiActivationValue string
