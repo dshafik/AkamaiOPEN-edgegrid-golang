@@ -38,21 +38,7 @@ type Client struct {
 
 type JSONBody map[string]interface{}
 
-func New(httpClient *http.Client, config Config) (*Client, error) {
-	c := NewClient(httpClient)
-	c.Config = config
-
-	baseURL, err := url.Parse("https://" + config.Host)
-
-	if err != nil {
-		return nil, err
-	}
-
-	c.BaseURL = baseURL
-	return c, nil
-}
-
-func NewClient(httpClient *http.Client) *Client {
+func NewClient(httpClient *http.Client, config *Config) (*Client, error) {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
@@ -149,8 +135,8 @@ func (c *Client) Get(url string) (*Response, error) {
 	return &res, nil
 }
 
-func (c *Client) Post(url string, bodyType string, body io.Reader) (*Response, error) {
-	req, err := c.NewRequest("POST", url, body)
+func (c *Client) send(method string, url string, bodyType string, body io.Reader) (*Response, error) {
+	req, err := c.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
 	}
@@ -175,8 +161,8 @@ func (c *Client) PostForm(url string, data url.Values) (resp *Response, err erro
 	return c.Post(url, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
 }
 
-	buf := new(bytes.Buffer)
-	err := json.NewEncoder(buf).Encode(data)
+func (c *Client) PostJson(url string, data interface{}) (resp *Response, err error) {
+	jsonBody, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +188,7 @@ func (c *Client) PutJson(url string, data interface{}) (resp *Response, err erro
 }
 
 func (c *Client) Head(url string) (*Response, error) {
-	req, _ := c.NewRequest("HEAD", url, nil)
+	req, err := c.NewRequest("HEAD", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +199,7 @@ func (c *Client) Head(url string) (*Response, error) {
 	}
 
 	res := Response(*response)
-	return &response, nil
+	return &res, nil
 }
 
 func (c *Client) Delete(url string) (resp *Response, err error) {
