@@ -50,7 +50,7 @@ type PapiEdgeHostname struct {
 	IPVersionBehavior  string `json:"ipVersionBehavior,omitempty"`
 }
 
-func NewEdgeHostname(edgeHostnames *PapiEdgeHostnames) (*PapiEdgeHostname, error) {
+func NewPapiEdgeHostname(edgeHostnames *PapiEdgeHostnames) (*PapiEdgeHostname, error) {
 	edgeHostname := &PapiEdgeHostname{parent: edgeHostnames}
 	edgeHostname.Init()
 	return edgeHostname, nil
