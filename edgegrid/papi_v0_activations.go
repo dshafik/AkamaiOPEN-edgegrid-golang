@@ -61,7 +61,7 @@ type PapiActivation struct {
 	ActivationType      PapiActivationValue `json:"activationType,omitempty"`
 	AcknowledgeWarnings []string            `json:"acknowledgeWarnings,omitempty"`
 	FastPush            bool                `json:"fastPush,omitempty"`
-	IgnoreHttpErrors    bool                `json:ignoreHttpErrors,omitempty`
+	IgnoreHttpErrors    bool                `json:"ignoreHttpErrors,omitempty"`
 	PropertyName        string              `json:"propertyName,omitempty"`
 	PropertyId          string              `json:"propertyId,omitempty"`
 	PropertyVersion     int                 `json:"propertyVersion"`

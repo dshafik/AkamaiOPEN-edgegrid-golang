@@ -130,9 +130,7 @@ func (c *Client) Get(url string) (*Response, error) {
 		return response, NewApiError(response)
 	}
 
-	res := Response(*response)
-
-	return &res, nil
+	return response, nil
 }
 
 func (c *Client) send(method string, url string, bodyType string, body io.Reader) (*Response, error) {
@@ -198,8 +196,7 @@ func (c *Client) Head(url string) (*Response, error) {
 		return nil, err
 	}
 
-	res := Response(*response)
-	return &res, nil
+	return response, nil
 }
 
 func (c *Client) Delete(url string) (resp *Response, err error) {
@@ -213,8 +210,7 @@ func (c *Client) Delete(url string) (resp *Response, err error) {
 		return nil, err
 	}
 
-	res := Response(*response)
-	return &res, err
+	return response, err
 }
 
 func (r *Response) BodyJson(data interface{}) error {
