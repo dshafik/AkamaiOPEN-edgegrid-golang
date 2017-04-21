@@ -17,7 +17,7 @@ addons:
       - glide
 install:
   - glide install
-  - go install .
+  - cd edgegrid/json && go install . && cd ../ && go install .
 script:
   - export PATH="$PATH:$HOME/gopath/bin"
   - cp $HOME/gopath/src/github.com/akamai-open/AkamaiOPEN-edgegrid-golang/sample_edgerc $HOME/.edgerc
