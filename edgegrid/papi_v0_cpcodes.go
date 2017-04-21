@@ -2,12 +2,17 @@ package edgegrid
 
 import (
 	"fmt"
-	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid/json"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid/json"
 )
 
+// PapiCpCodes represents a collection of CP Codes
+//
+// See: PapiCpCodes.GetCpCodes()
+// API Docs: https://developer.akamai.com/api/luna/papi/data.html#cpcode
 type PapiCpCodes struct {
 	resource
 	service    *PapiV0Service
@@ -21,11 +26,15 @@ type PapiCpCodes struct {
 	} `json:"cpcodes"`
 }
 
+// NewPapiCpCodes creates a new *PapiCpCodes
 func NewPapiCpCodes(service *PapiV0Service) *PapiCpCodes {
 	cpcodes := &PapiCpCodes{service: service}
 	return cpcodes
 }
 
+// PostUnmarshalJSON is called after UnmarshalJSON to setup the
+// structs internal state. The cpcodes.Complete channel is utilized
+// to communicate full completion.
 func (cpcodes *PapiCpCodes) PostUnmarshalJSON() error {
 	cpcodes.Init()
 
@@ -57,16 +66,19 @@ func (cpcodes *PapiCpCodes) PostUnmarshalJSON() error {
 	return nil
 }
 
-func (cpcodes *PapiCpCodes) GetCpCodes(contract *PapiContract, group *PapiGroup) error {
-	if contract == nil {
-		contract = NewPapiContract(NewPapiContracts(cpcodes.service))
-		contract.ContractID = group.ContractIDs[0]
+// GetCpCodes populates a *PapiCpCodes with it's related CP Codes
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#listcpcodes
+func (cpcodes *PapiCpCodes) GetCpCodes() error {
+	if cpcodes.Contract == nil {
+		cpcodes.Contract = NewPapiContract(NewPapiContracts(cpcodes.service))
+		cpcodes.Contract.ContractID = cpcodes.Group.ContractIDs[0]
 	}
 	res, err := cpcodes.service.client.Get(
 		fmt.Sprintf(
 			"/papi/v0/cpcodes?groupId=%s&contractId=%s",
-			group.GroupID,
-			contract.ContractID,
+			cpcodes.Group.GroupID,
+			cpcodes.Contract.ContractID,
 		),
 	)
 	if err != nil {
@@ -87,10 +99,14 @@ func (cpcodes *PapiCpCodes) GetCpCodes(contract *PapiContract, group *PapiGroup)
 	return nil
 }
 
+// NewCpCode creates a new *PapiCpCode associated with this *PapiCpCodes as it's parent.
 func (cpcodes *PapiCpCodes) NewCpCode() *PapiCpCode {
 	return NewPapiCpCode(cpcodes)
 }
 
+// PapiCpCode represents a single CP Code
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/data.html#cpcode
 type PapiCpCode struct {
 	resource
 	parent      *PapiCpCodes
@@ -101,12 +117,47 @@ type PapiCpCode struct {
 	CreatedDate time.Time `json:"createdDate,omitempty"`
 }
 
+// NewPapiCpCode creates a new *PapiCpCode
 func NewPapiCpCode(parent *PapiCpCodes) *PapiCpCode {
 	cpcode := &PapiCpCode{parent: parent}
 	cpcode.Init()
 	return cpcode
 }
 
+// GetCpCode populates the *PapiCpCode with it's data
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#getacpcode
+func (cpcode *PapiCpCode) GetCpCode() error {
+	res, err := cpcode.parent.service.client.Get(
+		fmt.Sprintf(
+			"/papi/v0/cpcodes/%s?contractId=%s&groupId=%s",
+			cpcode.CpcodeID,
+			cpcode.parent.Contract.ContractID,
+			cpcode.parent.Group.GroupID,
+		),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if res.IsError() {
+		return NewAPIError(res)
+	}
+
+	newCpcode := NewPapiCpCode(cpcode.parent)
+	if err = res.BodyJSON(newCpcode); err != nil {
+		return err
+	}
+
+	*cpcode = *newCpcode
+
+	return nil
+}
+
+// ID retrieves a CP Codes integer ID
+//
+// PAPI Behaviors require the integer ID, rather than the prefixed string returned
 func (cpcode *PapiCpCode) ID() int {
 	id, err := strconv.Atoi(strings.TrimPrefix(cpcode.CpcodeID, "cpc_"))
 	if err != nil {
@@ -116,6 +167,10 @@ func (cpcode *PapiCpCode) ID() int {
 	return id
 }
 
+// Save will create a new CP Code. You cannot update a CP Code;
+// trying to do so will result in an error.
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#createanewcpcode
 func (cpcode *PapiCpCode) Save() error {
 	res, err := cpcode.parent.service.client.PostJSON(
 		fmt.Sprintf(
@@ -134,7 +189,7 @@ func (cpcode *PapiCpCode) Save() error {
 		return NewAPIError(res)
 	}
 
-	var location map[string]interface{}
+	var location JSONBody
 	if err = res.BodyJSON(&location); err != nil {
 		return err
 	}
