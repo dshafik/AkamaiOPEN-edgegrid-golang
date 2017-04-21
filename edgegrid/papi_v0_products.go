@@ -54,7 +54,7 @@ func (products *PapiProducts) GetProducts(contract *PapiContract) error {
 	}
 
 	newProducts := NewPapiProducts(products.service)
-	if err = res.BodyJSON(products); err != nil {
+	if err = res.BodyJSON(newProducts); err != nil {
 		return err
 	}
 

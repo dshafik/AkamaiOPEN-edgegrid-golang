@@ -68,8 +68,7 @@ func (edgeHostnames *PapiEdgeHostnames) GetEdgeHostnames(contract *PapiContract,
 	}
 
 	newEdgeHostnames := NewPapiEdgeHostnames(edgeHostnames.service)
-	err = res.BodyJSON(newEdgeHostnames)
-	if err != nil {
+	if err = res.BodyJSON(newEdgeHostnames); err != nil {
 		return err
 	}
 

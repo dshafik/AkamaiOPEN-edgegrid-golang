@@ -65,7 +65,7 @@ func (versions *PapiVersions) GetVersions(property *PapiProperty, contract *Papi
 	}
 
 	newVersions := NewPapiVersions(versions.service)
-	if err = res.BodyJSON(versions); err != nil {
+	if err = res.BodyJSON(newVersions); err != nil {
 		return err
 	}
 
@@ -176,7 +176,7 @@ func (version *PapiVersion) Save() error {
 	}
 
 	var location map[string]interface{}
-	if err := res.BodyJSON(&location); err != nil {
+	if err = res.BodyJSON(&location); err != nil {
 		return err
 	}
 
@@ -193,7 +193,7 @@ func (version *PapiVersion) Save() error {
 	}
 
 	versions := NewPapiVersions(version.parent.service)
-	if err := res.BodyJSON(versions); err != nil {
+	if err = res.BodyJSON(versions); err != nil {
 		return err
 	}
 

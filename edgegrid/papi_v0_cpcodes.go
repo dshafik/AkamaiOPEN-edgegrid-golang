@@ -78,8 +78,7 @@ func (cpcodes *PapiCpCodes) GetCpCodes(contract *PapiContract, group *PapiGroup)
 	}
 
 	newCpcodes := NewPapiCpCodes(cpcodes.service)
-	err = res.BodyJSON(newCpcodes)
-	if err != nil {
+	if err = res.BodyJSON(newCpcodes); err != nil {
 		return err
 	}
 
@@ -136,7 +135,7 @@ func (cpcode *PapiCpCode) Save() error {
 	}
 
 	var location map[string]interface{}
-	if err := res.BodyJSON(&location); err != nil {
+	if err = res.BodyJSON(&location); err != nil {
 		return err
 	}
 
@@ -153,8 +152,7 @@ func (cpcode *PapiCpCode) Save() error {
 	}
 
 	cpcodes := NewPapiCpCodes(cpcode.parent.service)
-	err = res.BodyJSON(cpcodes)
-	if err != nil {
+	if err = res.BodyJSON(cpcodes); err != nil {
 		return err
 	}
 

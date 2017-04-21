@@ -200,7 +200,7 @@ func (rules *PapiRules) Save() error {
 		return NewAPIError(res)
 	}
 
-	if err := res.BodyJSON(rules); err != nil {
+	if err = res.BodyJSON(rules); err != nil {
 		return err
 	}
 
