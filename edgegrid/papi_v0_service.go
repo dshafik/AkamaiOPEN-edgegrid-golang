@@ -5,8 +5,8 @@ type PapiV0Service struct {
 	config *Config
 }
 
-func NewPapiV0Service(client *Client, config *Config) PapiV0Service {
-	return PapiV0Service{client: client, config: config}
+func NewPapiV0Service(client *Client, config *Config) *PapiV0Service {
+	return &PapiV0Service{client: client, config: config}
 }
 
 func (papi *PapiV0Service) GetGroups() (*PapiGroups, error) {

@@ -35,6 +35,7 @@ type Client struct {
 	Config *Config
 
 	ConfigDNSV1 *ConfigDNSV1Service
+	PapiV0      *PapiV0Service
 }
 
 // JSONBody represents an anonymous JSON Response
@@ -64,6 +65,7 @@ func NewClient(httpClient *http.Client, config *Config) (*Client, error) {
 	client.BaseURL = baseURL
 
 	client.ConfigDNSV1 = NewConfigDNSV1Service(client, config)
+	client.PapiV0 = NewPapiV0Service(client, config)
 	return client, nil
 }
 
