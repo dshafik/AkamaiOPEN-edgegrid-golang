@@ -9,9 +9,9 @@ import (
 type PapiEdgeHostnames struct {
 	Resource
 	service       *PapiV0Service
-	AccountId     string `json:"accountId"`
-	ContractId    string `json:"contractId"`
-	GroupId       string `json:"groupId"`
+	AccountID     string `json:"accountId"`
+	ContractID    string `json:"contractId"`
+	GroupID       string `json:"groupId"`
 	EdgeHostnames struct {
 		Items []*PapiEdgeHostname `json:"items"`
 	} `json:"edgeHostnames"`
@@ -29,8 +29,8 @@ func (edgeHostnames *PapiEdgeHostnames) PostUnmarshalJSON() error {
 	for key, edgeHostname := range edgeHostnames.EdgeHostnames.Items {
 		edgeHostnames.EdgeHostnames.Items[key].parent = edgeHostnames
 
-		if edgeHostname, ok := json.ImplementsPostJsonUnmarshaler(edgeHostname); ok {
-			if err := edgeHostname.(json.PostJsonUnmarshaler).PostUnmarshalJSON(); err != nil {
+		if edgeHostname, ok := json.ImplementsPostJSONUnmarshaler(edgeHostname); ok {
+			if err := edgeHostname.(json.PostJSONUnmarshaler).PostUnmarshalJSON(); err != nil {
 				return err
 			}
 		}
@@ -44,7 +44,7 @@ func (edgeHostnames *PapiEdgeHostnames) PostUnmarshalJSON() error {
 func (edgeHostnames *PapiEdgeHostnames) GetEdgeHostnames(contract *PapiContract, group *PapiGroup, options string) error {
 	if contract == nil {
 		contract = NewPapiContract(NewPapiContracts(edgeHostnames.service))
-		contract.ContractId = group.ContractIds[0]
+		contract.ContractID = group.ContractIDs[0]
 	}
 
 	if options != "" {
@@ -54,8 +54,8 @@ func (edgeHostnames *PapiEdgeHostnames) GetEdgeHostnames(contract *PapiContract,
 	res, err := edgeHostnames.service.client.Get(
 		fmt.Sprintf(
 			"/papi/v0/edgehostnames?groupId=%s&contractId=%s%s",
-			group.GroupId,
-			contract.ContractId,
+			group.GroupID,
+			contract.ContractID,
 			options,
 		),
 	)
@@ -64,11 +64,11 @@ func (edgeHostnames *PapiEdgeHostnames) GetEdgeHostnames(contract *PapiContract,
 	}
 
 	if res.IsError() {
-		return NewApiError(res)
+		return NewAPIError(res)
 	}
 
 	newEdgeHostnames := NewPapiEdgeHostnames(edgeHostnames.service)
-	err = res.BodyJson(newEdgeHostnames)
+	err = res.BodyJSON(newEdgeHostnames)
 	if err != nil {
 		return err
 	}
@@ -81,9 +81,9 @@ func (edgeHostnames *PapiEdgeHostnames) GetEdgeHostnames(contract *PapiContract,
 type PapiEdgeHostname struct {
 	Resource
 	parent             *PapiEdgeHostnames
-	EdgeHostnameId     string `json:"edgeHostnameId,omitempty"`
+	EdgeHostnameID     string `json:"edgeHostnameId,omitempty"`
 	EdgeHostnameDomain string `json:"edgeHostnameDomain,omitempty"`
-	ProductId          string `json:"productId"`
+	ProductID          string `json:"productId"`
 	DomainPrefix       string `json:"domainPrefix"`
 	DomainSuffix       string `json:"domainSuffix"`
 	Status             string `json:"status,omitempty"`

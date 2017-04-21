@@ -9,11 +9,11 @@ import (
 type PapiVersions struct {
 	Resource
 	service      *PapiV0Service
-	PropertyId   string `json:"propertyId"`
+	PropertyID   string `json:"propertyId"`
 	PropertyName string `json:"propertyName"`
-	AccountId    string `json:"accountId"`
-	ContractId   string `json:"contractId"`
-	GroupId      string `json:"groupId"`
+	AccountID    string `json:"accountId"`
+	ContractID   string `json:"contractId"`
+	GroupID      string `json:"groupId"`
 	Versions     struct {
 		Items []*PapiVersion `json:"items"`
 	} `json:"versions"`
@@ -54,9 +54,9 @@ func (versions *PapiVersions) GetVersions(property *PapiProperty, contract *Papi
 	res, err := versions.service.client.Get(
 		fmt.Sprintf(
 			"/papi/v0/properties/%s/versions?contractId=%s&groupId=%s",
-			property.PropertyId,
-			contract.ContractId,
-			group.GroupId,
+			property.PropertyID,
+			contract.ContractID,
+			group.GroupID,
 		),
 	)
 
@@ -65,7 +65,7 @@ func (versions *PapiVersions) GetVersions(property *PapiProperty, contract *Papi
 	}
 
 	newVersions := NewPapiVersions(versions.service)
-	if err = res.BodyJson(versions); err != nil {
+	if err = res.BodyJSON(versions); err != nil {
 		return err
 	}
 
@@ -106,7 +106,7 @@ type PapiVersion struct {
 	ProductionStatus      string    `json:"productionStatus,omitempty"`
 	StagingStatus         string    `json:"stagingStatus,omitempty"`
 	Etag                  string    `json:"etag,omitempty"`
-	ProductId             string    `json:"productId,omitempty"`
+	ProductID             string    `json:"productId,omitempty"`
 	Note                  string    `json:"note,omitempty"`
 	CreateFromVersion     int       `json:"createFromVersion,omitempty"`
 	CreateFromVersionEtag string    `json:"createFromVersionEtag,omitempty"`
@@ -123,14 +123,14 @@ func NewPapiVersion(parent *PapiVersions) *PapiVersion {
 func (version *PapiVersion) HasBeenActivated() (bool, error) {
 	properties := NewPapiProperties(version.parent.service)
 	property := NewPapiProperty(properties)
-	property.PropertyId = version.parent.PropertyId
+	property.PropertyID = version.parent.PropertyID
 
 	property.Group = NewPapiGroup(NewPapiGroups(version.parent.service))
-	property.Group.GroupId = version.parent.GroupId
+	property.Group.GroupID = version.parent.GroupID
 	go property.Group.GetGroup()
 
 	property.Contract = NewPapiContract(NewPapiContracts(version.parent.service))
-	property.Contract.ContractId = version.parent.ContractId
+	property.Contract.ContractID = version.parent.ContractID
 	go property.Contract.GetContract()
 
 	go (func(property *PapiProperty) {
@@ -158,11 +158,11 @@ func (version *PapiVersion) Save() error {
 		return fmt.Errorf("Version (%d) already exists!", version.PropertyVersion)
 	}
 
-	res, err := version.parent.service.client.PostJson(
+	res, err := version.parent.service.client.PostJSON(
 		fmt.Sprintf(
 			"/papi/v0/properties/{propertyId}/versions/?contractId=%s&groupId=%s",
-			version.parent.ContractId,
-			version.parent.ContractId,
+			version.parent.ContractID,
+			version.parent.ContractID,
 		),
 		version,
 	)
@@ -172,11 +172,11 @@ func (version *PapiVersion) Save() error {
 	}
 
 	if res.IsError() {
-		return NewApiError(res)
+		return NewAPIError(res)
 	}
 
 	var location map[string]interface{}
-	if err := res.BodyJson(&location); err != nil {
+	if err := res.BodyJSON(&location); err != nil {
 		return err
 	}
 
@@ -189,11 +189,11 @@ func (version *PapiVersion) Save() error {
 	}
 
 	if res.IsError() {
-		return NewApiError(res)
+		return NewAPIError(res)
 	}
 
 	versions := NewPapiVersions(version.parent.service)
-	if err := res.BodyJson(versions); err != nil {
+	if err := res.BodyJSON(versions); err != nil {
 		return err
 	}
 

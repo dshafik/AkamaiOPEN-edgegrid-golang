@@ -10,10 +10,10 @@ import (
 type PapiRules struct {
 	Resource
 	service         *PapiV0Service
-	AccountId       string            `json:"accountId"`
-	ContractId      string            `json:"contractId"`
-	GroupId         string            `json:"groupId"`
-	PropertyId      string            `json:"propertyId"`
+	AccountID       string            `json:"accountId"`
+	ContractID      string            `json:"contractId"`
+	GroupID         string            `json:"groupId"`
+	PropertyID      string            `json:"propertyId"`
 	PropertyVersion int               `json:"propertyVersion"`
 	Etag            string            `json:"etag"`
 	RuleFormat      string            `json:"ruleFormat"`
@@ -56,13 +56,13 @@ func (rules *PapiRules) PreMarshalJSON() error {
 
 func (rules *PapiRules) PrintRules() error {
 	group := NewPapiGroup(NewPapiGroups(rules.service))
-	group.GroupId = rules.GroupId
-	group.ContractIds = []string{rules.ContractId}
+	group.GroupID = rules.GroupID
+	group.ContractIDs = []string{rules.ContractID}
 
 	properties, _ := group.GetProperties(nil)
 	var property *PapiProperty
 	for _, property = range properties.Properties.Items {
-		if property.PropertyId == rules.PropertyId {
+		if property.PropertyID == rules.PropertyID {
 			break
 		}
 	}
@@ -181,13 +181,13 @@ func (rules *PapiRules) GetRules() []*PapiRule {
 
 func (rules *PapiRules) Save() error {
 	// /papi/v0/properties/{propertyId}/versions/{propertyVersion}/rules/{?contractId,groupId}
-	res, err := rules.service.client.PutJson(
+	res, err := rules.service.client.PutJSON(
 		fmt.Sprintf(
 			"/papi/v0/properties/%s/versions/%d/rules/?contractId=%s&groupId=%s",
-			rules.PropertyId,
+			rules.PropertyID,
 			rules.PropertyVersion,
-			rules.ContractId,
-			rules.GroupId,
+			rules.ContractID,
+			rules.GroupID,
 		),
 		rules,
 	)
@@ -197,10 +197,10 @@ func (rules *PapiRules) Save() error {
 	}
 
 	if res.IsError() {
-		return NewApiError(res)
+		return NewAPIError(res)
 	}
 
-	if err := res.BodyJson(rules); err != nil {
+	if err := res.BodyJSON(rules); err != nil {
 		return err
 	}
 
@@ -369,9 +369,9 @@ type PapiOptionValue map[string]interface{}
 type PapiAvailableCriteria struct {
 	Resource
 	service           *PapiV0Service
-	ContractId        string `json:"contractId"`
-	GroupId           string `json:"groupId"`
-	ProductId         string `json:"productId"`
+	ContractID        string `json:"contractId"`
+	GroupID           string `json:"groupId"`
+	ProductID         string `json:"productId"`
 	RuleFormat        string `json:"ruleFormat"`
 	AvailableCriteria struct {
 		Items []struct {
@@ -391,16 +391,16 @@ func NewPapiAvailableCriteria(service *PapiV0Service) *PapiAvailableCriteria {
 func (availableCriteria *PapiAvailableCriteria) GetAvailableCriteria(property *PapiProperty, contract *PapiContract, group *PapiGroup) error {
 	if contract == nil {
 		contract = NewPapiContract(NewPapiContracts(availableCriteria.service))
-		contract.ContractId = group.ContractIds[0]
+		contract.ContractID = group.ContractIDs[0]
 	}
 
 	res, err := availableCriteria.service.client.Get(
 		fmt.Sprintf(
 			"/papi/v0/properties/%s/versions/%d/available-behaviors?contractId=%s&groupId=%s",
-			property.PropertyId,
+			property.PropertyID,
 			property.LatestVersion,
-			contract.ContractId,
-			group.GroupId,
+			contract.ContractID,
+			group.GroupID,
 		),
 	)
 
@@ -409,11 +409,11 @@ func (availableCriteria *PapiAvailableCriteria) GetAvailableCriteria(property *P
 	}
 
 	if res.IsError() {
-		return NewApiError(res)
+		return NewAPIError(res)
 	}
 
 	newAvailableCriteria := NewPapiAvailableCriteria(availableCriteria.service)
-	if err = res.BodyJson(newAvailableCriteria); err != nil {
+	if err = res.BodyJSON(newAvailableCriteria); err != nil {
 		return err
 	}
 
@@ -425,9 +425,9 @@ func (availableCriteria *PapiAvailableCriteria) GetAvailableCriteria(property *P
 type PapiAvailableBehaviors struct {
 	Resource
 	service    *PapiV0Service
-	ContractId string `json:"contractId"`
-	GroupId    string `json:"groupId"`
-	ProductId  string `json:"productId"`
+	ContractID string `json:"contractId"`
+	GroupID    string `json:"groupId"`
+	ProductID  string `json:"productId"`
 	RuleFormat string `json:"ruleFormat"`
 	Behaviors  struct {
 		Items []PapiAvailableBehavior `json:"items"`
@@ -456,16 +456,16 @@ func (availableBehaviors *PapiAvailableBehaviors) PostUnmashalJSON() error {
 func (availableBehaviors *PapiAvailableBehaviors) GetAvailableBehaviors(property *PapiProperty, contract *PapiContract, group *PapiGroup) error {
 	if contract == nil {
 		contract = NewPapiContract(NewPapiContracts(availableBehaviors.service))
-		contract.ContractId = group.ContractIds[0]
+		contract.ContractID = group.ContractIDs[0]
 	}
 
 	res, err := availableBehaviors.service.client.Get(
 		fmt.Sprintf(
 			"/papi/v0/properties/%s/versions/%d/available-behaviors?contractId=%s&groupId=%s",
-			property.PropertyId,
+			property.PropertyID,
 			property.LatestVersion,
-			contract.ContractId,
-			group.GroupId,
+			contract.ContractID,
+			group.GroupID,
 		),
 	)
 
@@ -474,11 +474,11 @@ func (availableBehaviors *PapiAvailableBehaviors) GetAvailableBehaviors(property
 	}
 
 	if res.IsError() {
-		return NewApiError(res)
+		return NewAPIError(res)
 	}
 
 	newAvailableBehaviors := NewPapiAvailableBehaviors(availableBehaviors.service)
-	if err = res.BodyJson(newAvailableBehaviors); err != nil {
+	if err = res.BodyJSON(newAvailableBehaviors); err != nil {
 		return err
 	}
 

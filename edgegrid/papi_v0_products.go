@@ -8,8 +8,8 @@ import (
 type PapiProducts struct {
 	Resource
 	service    *PapiV0Service
-	AccountId  string `json:"accountId"`
-	ContractId string `json:"contractId"`
+	AccountID  string `json:"accountId"`
+	ContractID string `json:"contractId"`
 	Products   struct {
 		Items []*PapiProduct `json:"items"`
 	} `json:"products"`
@@ -27,8 +27,8 @@ func (products *PapiProducts) PostUnmarshalJSON() error {
 
 	for key, product := range products.Products.Items {
 		products.Products.Items[key].parent = products
-		if product, ok := json.ImplementsPostJsonUnmarshaler(product); ok {
-			if err := product.(json.PostJsonUnmarshaler).PostUnmarshalJSON(); err != nil {
+		if product, ok := json.ImplementsPostJSONUnmarshaler(product); ok {
+			if err := product.(json.PostJSONUnmarshaler).PostUnmarshalJSON(); err != nil {
 				return err
 			}
 		}
@@ -41,7 +41,7 @@ func (products *PapiProducts) GetProducts(contract *PapiContract) error {
 	res, err := products.service.client.Get(
 		fmt.Sprintf(
 			"/papi/v0/products?contractId=%s",
-			contract.ContractId,
+			contract.ContractID,
 		),
 	)
 
@@ -50,11 +50,11 @@ func (products *PapiProducts) GetProducts(contract *PapiContract) error {
 	}
 
 	if res.IsError() {
-		return NewApiError(res)
+		return NewAPIError(res)
 	}
 
 	newProducts := NewPapiProducts(products.service)
-	if err = res.BodyJson(products); err != nil {
+	if err = res.BodyJSON(products); err != nil {
 		return err
 	}
 
@@ -67,7 +67,7 @@ type PapiProduct struct {
 	Resource
 	parent      *PapiProducts
 	ProductName string `json:"productName"`
-	ProductId   string `json:"productId"`
+	ProductID   string `json:"productId"`
 }
 
 func NewPapiProduct(parent *PapiProducts) *PapiProduct {

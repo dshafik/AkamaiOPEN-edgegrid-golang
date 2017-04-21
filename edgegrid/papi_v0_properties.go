@@ -25,8 +25,8 @@ func (properties *PapiProperties) PostUnmarshalJSON() error {
 
 	for key, property := range properties.Properties.Items {
 		properties.Properties.Items[key].parent = properties
-		if property, ok := json.ImplementsPostJsonUnmarshaler(property); ok {
-			err := property.(json.PostJsonUnmarshaler).PostUnmarshalJSON()
+		if property, ok := json.ImplementsPostJSONUnmarshaler(property); ok {
+			err := property.(json.PostJSONUnmarshaler).PostUnmarshalJSON()
 			if err != nil {
 				return err
 			}
@@ -39,14 +39,14 @@ func (properties *PapiProperties) PostUnmarshalJSON() error {
 func (properties *PapiProperties) GetProperties(contract *PapiContract, group *PapiGroup) error {
 	if contract == nil {
 		contract = NewPapiContract(NewPapiContracts(properties.service))
-		contract.ContractId = group.ContractIds[0]
+		contract.ContractID = group.ContractIDs[0]
 	}
 
 	res, err := properties.service.client.Get(
 		fmt.Sprintf(
 			"/papi/v0/properties?groupId=%s&contractId=%s",
-			group.GroupId,
-			contract.ContractId,
+			group.GroupID,
+			contract.ContractID,
 		),
 	)
 
@@ -55,11 +55,11 @@ func (properties *PapiProperties) GetProperties(contract *PapiContract, group *P
 	}
 
 	if res.IsError() {
-		return NewApiError(res)
+		return NewAPIError(res)
 	}
 
 	newProperties := NewPapiProperties(properties.service)
-	if err = res.BodyJson(newProperties); err != nil {
+	if err = res.BodyJSON(newProperties); err != nil {
 		return err
 	}
 
@@ -69,9 +69,9 @@ func (properties *PapiProperties) GetProperties(contract *PapiContract, group *P
 }
 
 func (properties *PapiProperties) AddProperty(newProperty *PapiProperty) {
-	if newProperty.Group.GroupId != "" {
+	if newProperty.Group.GroupID != "" {
 		for key, property := range properties.Properties.Items {
-			if property.PropertyId == newProperty.PropertyId {
+			if property.PropertyID == newProperty.PropertyID {
 				properties.Properties.Items[key] = newProperty
 				return
 			}
@@ -118,18 +118,18 @@ func (properties *PapiProperties) NewProperty(contract *PapiContract, group *Pap
 type PapiProperty struct {
 	Resource
 	parent            *PapiProperties
-	AccountId         string                 `json:"accountId,omitempty"`
+	AccountID         string                 `json:"accountId,omitempty"`
 	Contract          *PapiContract          `json:"-"`
 	Group             *PapiGroup             `json:"-"`
-	ContractId        string                 `json:"contractId,omitempty"`
-	GroupId           string                 `json:"groupId,omitempty"`
-	PropertyId        string                 `json:"propertyId,omitempty"`
+	ContractID        string                 `json:"contractId,omitempty"`
+	GroupID           string                 `json:"groupId,omitempty"`
+	PropertyID        string                 `json:"propertyId,omitempty"`
 	PropertyName      string                 `json:"propertyName"`
 	LatestVersion     int                    `json:"latestVersion,omitempty"`
 	StagingVersion    int                    `json:"stagingVersion,omitempty"`
 	ProductionVersion int                    `json:"productionVersion,omitempty"`
 	Note              string                 `json:"note,omitempty"`
-	ProductId         string                 `json:"productId,omitempty"`
+	ProductID         string                 `json:"productId,omitempty"`
 	CloneFrom         *PapiClonePropertyFrom `json:"cloneFrom"`
 }
 
@@ -140,17 +140,17 @@ func NewPapiProperty(parent *PapiProperties) *PapiProperty {
 }
 
 func (property *PapiProperty) PreMarshalJSON() error {
-	property.GroupId = property.Group.GroupId
-	property.ContractId = property.Contract.ContractId
+	property.GroupID = property.Group.GroupID
+	property.ContractID = property.Contract.ContractID
 	return nil
 }
 
 func (property *PapiProperty) GetActivations() (*PapiActivations, error) {
 	res, err := property.parent.service.client.Get(
 		fmt.Sprintf("/papi/v0/properties/%s/activations?contractId=%s&groupId=%s",
-			property.PropertyId,
-			property.Contract.ContractId,
-			property.Group.GroupId,
+			property.PropertyID,
+			property.Contract.ContractID,
+			property.Group.GroupID,
 		),
 	)
 
@@ -159,7 +159,7 @@ func (property *PapiProperty) GetActivations() (*PapiActivations, error) {
 	}
 
 	activations := NewPapiActivations(property.parent.service)
-	if err = res.BodyJson(activations); err != nil {
+	if err = res.BodyJSON(activations); err != nil {
 		return nil, err
 	}
 
@@ -170,10 +170,10 @@ func (property *PapiProperty) GetAvailableBehaviors() (*PapiAvailableBehaviors, 
 	// /papi/v0/properties/{propertyId}/versions/{propertyVersion}/available-behaviors{?contractId,groupId}
 	res, err := property.parent.service.client.Get(fmt.Sprintf(
 		"/papi/v0/properties/%s/versions/%d/available-behaviors?contractId=%s&groupId=%s",
-		property.PropertyId,
+		property.PropertyID,
 		property.LatestVersion,
-		property.Contract.ContractId,
-		property.Group.GroupId,
+		property.Contract.ContractID,
+		property.Group.GroupID,
 	))
 
 	if err != nil {
@@ -181,7 +181,7 @@ func (property *PapiProperty) GetAvailableBehaviors() (*PapiAvailableBehaviors, 
 	}
 
 	behaviors := NewPapiAvailableBehaviors(property.parent.service)
-	if err = res.BodyJson(behaviors); err != nil {
+	if err = res.BodyJSON(behaviors); err != nil {
 		return nil, err
 	}
 
@@ -192,10 +192,10 @@ func (property *PapiProperty) GetRules() (*PapiRules, error) {
 	// /papi/v0/properties/{propertyId}/versions/{propertyVersion}/rules/{?contractId,groupId}
 	res, err := property.parent.service.client.Get(fmt.Sprintf(
 		"/papi/v0/properties/%s/versions/%d/rules?contractId=%s&groupId=%s",
-		property.PropertyId,
+		property.PropertyID,
 		property.LatestVersion,
-		property.Contract.ContractId,
-		property.Group.GroupId,
+		property.Contract.ContractID,
+		property.Group.GroupID,
 	))
 
 	if err != nil {
@@ -203,7 +203,7 @@ func (property *PapiProperty) GetRules() (*PapiRules, error) {
 	}
 
 	rules := NewPapiRules(property.parent.service)
-	if err = res.BodyJson(rules); err != nil {
+	if err = res.BodyJSON(rules); err != nil {
 		return nil, err
 	}
 
@@ -215,9 +215,9 @@ func (property *PapiProperty) GetVersions() (*PapiVersions, error) {
 	res, err := property.parent.service.client.Get(
 		fmt.Sprintf(
 			"/papi/v0/properties/%s/versions?contractId=%s&groupId=%s",
-			property.PropertyId,
-			property.Contract.ContractId,
-			property.Group.GroupId,
+			property.PropertyID,
+			property.Contract.ContractID,
+			property.Group.GroupID,
 		),
 	)
 
@@ -226,11 +226,11 @@ func (property *PapiProperty) GetVersions() (*PapiVersions, error) {
 	}
 
 	if res.IsError() {
-		return nil, NewApiError(res)
+		return nil, NewAPIError(res)
 	}
 
 	versions := NewPapiVersions(property.parent.service)
-	if err = res.BodyJson(versions); err != nil {
+	if err = res.BodyJSON(versions); err != nil {
 		return nil, err
 	}
 
@@ -246,10 +246,10 @@ func (property *PapiProperty) GetHostnames(version int) (*PapiHostnames, error) 
 	res, err := property.parent.service.client.Get(
 		fmt.Sprintf(
 			"/papi/v0/properties/%s/versions/%d/hostnames/?contractId=%s&groupId=%s",
-			property.PropertyId,
+			property.PropertyID,
 			version,
-			property.Contract.ContractId,
-			property.Group.GroupId,
+			property.Contract.ContractID,
+			property.Group.GroupID,
 		),
 	)
 
@@ -258,11 +258,11 @@ func (property *PapiProperty) GetHostnames(version int) (*PapiHostnames, error) 
 	}
 
 	if res.IsError() {
-		return nil, NewApiError(res)
+		return nil, NewAPIError(res)
 	}
 
 	hostnames := NewPapiHostnames(property.parent.service)
-	if err := res.BodyJson(hostnames); err != nil {
+	if err := res.BodyJSON(hostnames); err != nil {
 		return nil, err
 	}
 
@@ -273,10 +273,10 @@ func (property *PapiProperty) PostUnmarshalJSON() error {
 	property.Init()
 
 	property.Contract = NewPapiContract(NewPapiContracts(property.parent.service))
-	property.Contract.ContractId = property.ContractId
+	property.Contract.ContractID = property.ContractID
 
 	property.Group = NewPapiGroup(NewPapiGroups(property.parent.service))
-	property.Group.GroupId = property.GroupId
+	property.Group.GroupID = property.GroupID
 
 	go property.Group.GetGroup()
 	go property.Contract.GetContract()
@@ -291,11 +291,11 @@ func (property *PapiProperty) PostUnmarshalJSON() error {
 }
 
 func (property *PapiProperty) Save() error {
-	res, err := property.parent.service.client.PostJson(
+	res, err := property.parent.service.client.PostJSON(
 		fmt.Sprintf(
 			"/papi/v0/properties?contractId=%s&groupId=%s",
-			property.Contract.ContractId,
-			property.Group.GroupId,
+			property.Contract.ContractID,
+			property.Group.GroupID,
 		),
 		property,
 	)
@@ -305,11 +305,11 @@ func (property *PapiProperty) Save() error {
 	}
 
 	if res.IsError() {
-		return NewApiError(res)
+		return NewAPIError(res)
 	}
 
 	var location map[string]interface{}
-	if err := res.BodyJson(&location); err != nil {
+	if err := res.BodyJSON(&location); err != nil {
 		return err
 	}
 
@@ -322,11 +322,11 @@ func (property *PapiProperty) Save() error {
 	}
 
 	if res.IsError() {
-		return NewApiError(res)
+		return NewAPIError(res)
 	}
 
 	properties := NewPapiProperties(property.parent.service)
-	if err := res.BodyJson(properties); err != nil {
+	if err := res.BodyJSON(properties); err != nil {
 		return err
 	}
 
@@ -344,9 +344,9 @@ func (property *PapiProperty) Delete() error {
 	res, err := property.parent.service.client.Delete(
 		fmt.Sprintf(
 			"/papi/v0/properties/%s?contractId=%s&groupId=%s",
-			property.PropertyId,
-			property.Contract.ContractId,
-			property.Group.GroupId,
+			property.PropertyID,
+			property.Contract.ContractID,
+			property.Group.GroupID,
 		),
 	)
 
@@ -355,7 +355,7 @@ func (property *PapiProperty) Delete() error {
 	}
 
 	if res.IsError() {
-		return NewApiError(res)
+		return NewAPIError(res)
 	}
 
 	return nil
@@ -363,7 +363,7 @@ func (property *PapiProperty) Delete() error {
 
 type PapiClonePropertyFrom struct {
 	Resource
-	PropertyId           string `json:"propertyId"`
+	PropertyID           string `json:"propertyId"`
 	Version              int    `json:"version"`
 	CopyHostnames        bool   `json:"copyHostnames,omitempty"`
 	CloneFromVersionEtag string `json:"cloneFromVersionEtag,omitempty"`

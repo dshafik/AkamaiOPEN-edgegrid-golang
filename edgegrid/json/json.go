@@ -10,8 +10,8 @@ import (
 //
 // This should probably copy v, otherwise PreMarshalJSON is destructive
 func Marshal(v interface{}) ([]byte, error) {
-	if _, ok := v.(PreJsonMarshaler); ok {
-		err := v.(PreJsonMarshaler).PreMarshalJSON()
+	if _, ok := v.(PreJSONMarshaler); ok {
+		err := v.(PreJSONMarshaler).PreMarshalJSON()
 		if err != nil {
 			return nil, err
 		}
@@ -27,8 +27,8 @@ func Unmarshal(data []byte, v interface{}) error {
 		return err
 	}
 
-	if _, ok := v.(PostJsonUnmarshaler); ok {
-		err := v.(PostJsonUnmarshaler).PostUnmarshalJSON()
+	if _, ok := v.(PostJSONUnmarshaler); ok {
+		err := v.(PostJSONUnmarshaler).PostUnmarshalJSON()
 		if err != nil {
 			return err
 		}
@@ -37,20 +37,20 @@ func Unmarshal(data []byte, v interface{}) error {
 	return nil
 }
 
-type PreJsonMarshaler interface {
+type PreJSONMarshaler interface {
 	PreMarshalJSON() error
 }
 
-func ImplementsPreJsonMarshaler(v interface{}) bool {
-	_, ok := v.(PreJsonMarshaler)
+func ImplementsPreJSONMarshaler(v interface{}) bool {
+	_, ok := v.(PreJSONMarshaler)
 	return ok
 }
 
-type PostJsonUnmarshaler interface {
+type PostJSONUnmarshaler interface {
 	PostUnmarshalJSON() error
 }
 
-func ImplementsPostJsonUnmarshaler(v interface{}) (interface{}, bool) {
-	v, ok := v.(PostJsonUnmarshaler)
+func ImplementsPostJSONUnmarshaler(v interface{}) (interface{}, bool) {
+	v, ok := v.(PostJSONUnmarshaler)
 	return v, ok
 }

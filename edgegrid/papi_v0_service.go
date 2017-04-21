@@ -93,7 +93,7 @@ func (papi *PapiV0Service) GetAvailableCriteria(property *PapiProperty, contract
 func (papi *PapiV0Service) NewProperty(contract *PapiContract, group *PapiGroup) (*PapiProperty, error) {
 	if contract == nil {
 		contract = NewPapiContract(NewPapiContracts(papi))
-		contract.ContractId = group.ContractIds[0]
+		contract.ContractID = group.ContractIDs[0]
 	}
 
 	properties := NewPapiProperties(papi)
