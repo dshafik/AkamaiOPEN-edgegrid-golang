@@ -55,13 +55,11 @@ func (rules *PapiRules) PreMarshalJSON() error {
 }
 
 func (rules *PapiRules) PrintRules() error {
-	groups := &PapiGroup{
-		parent:      &PapiGroups{service: rules.service},
-		GroupId:     rules.GroupId,
-		ContractIds: []string{rules.ContractId},
-	}
+	group := NewPapiGroup(NewPapiGroups(rules.service))
+	group.GroupId = rules.GroupId
+	group.ContractIds = []string{rules.ContractId}
 
-	properties, _ := groups.GetProperties(nil)
+	properties, _ := group.GetProperties(nil)
 	var property *PapiProperty
 	for _, property = range properties.Properties.Items {
 		if property.PropertyId == rules.PropertyId {

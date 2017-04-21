@@ -29,10 +29,10 @@ func NewPapiCpCodes(service *PapiV0Service) *PapiCpCodes {
 func (cpcodes *PapiCpCodes) PostUnmarshalJSON() error {
 	cpcodes.Init()
 
-	cpcodes.Contract = NewPapiContract(&PapiContracts{service: cpcodes.service})
+	cpcodes.Contract = NewPapiContract(NewPapiContracts(cpcodes.service))
 	cpcodes.Contract.ContractId = cpcodes.ContractId
 
-	cpcodes.Group = NewPapiGroup(&PapiGroups{service: cpcodes.service})
+	cpcodes.Group = NewPapiGroup(NewPapiGroups(cpcodes.service))
 	cpcodes.Group.GroupId = cpcodes.GroupId
 
 	go cpcodes.Group.GetGroup()

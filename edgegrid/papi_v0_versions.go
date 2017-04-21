@@ -86,10 +86,8 @@ func (versions *PapiVersions) NewVersion(createFromVersion *PapiVersion, useEtag
 		createFromVersion = versions.GetLatestVersion()
 	}
 
-	version := &PapiVersion{
-		parent:            versions,
-		CreateFromVersion: createFromVersion.PropertyVersion,
-	}
+	version := NewPapiVersion(versions)
+	version.CreateFromVersion = createFromVersion.PropertyVersion
 
 	if useEtagStrict {
 		version.CreateFromVersionEtag = createFromVersion.Etag
@@ -191,8 +189,10 @@ func (version *PapiVersion) Save() error {
 		return NewApiError(res)
 	}
 
-	versions := &PapiVersions{service: version.parent.service}
-	res.BodyJson(versions)
+	versions := NewPapiVersions(version.parent.service)
+	if err := res.BodyJson(versions); err != nil {
+		return err
+	}
 
 	newVersion := versions.Versions.Items[0]
 	newVersion.parent = version.parent

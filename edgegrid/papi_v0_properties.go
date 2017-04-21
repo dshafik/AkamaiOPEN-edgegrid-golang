@@ -158,7 +158,7 @@ func (property *PapiProperty) GetActivations() (*PapiActivations, error) {
 		return nil, err
 	}
 
-	activations := &PapiActivations{service: property.parent.service}
+	activations := NewPapiActivations(property.parent.service)
 	if err = res.BodyJson(activations); err != nil {
 		return nil, err
 	}
@@ -180,7 +180,7 @@ func (property *PapiProperty) GetAvailableBehaviors() (*PapiAvailableBehaviors, 
 		return nil, err
 	}
 
-	behaviors := &PapiAvailableBehaviors{service: property.parent.service}
+	behaviors := NewPapiAvailableBehaviors(property.parent.service)
 	if err = res.BodyJson(behaviors); err != nil {
 		return nil, err
 	}
@@ -202,7 +202,7 @@ func (property *PapiProperty) GetRules() (*PapiRules, error) {
 		return nil, err
 	}
 
-	rules := &PapiRules{service: property.parent.service}
+	rules := NewPapiRules(property.parent.service)
 	if err = res.BodyJson(rules); err != nil {
 		return nil, err
 	}
@@ -225,7 +225,11 @@ func (property *PapiProperty) GetVersions() (*PapiVersions, error) {
 		return nil, err
 	}
 
-	versions := &PapiVersions{service: property.parent.service}
+	if res.IsError() {
+		return nil, NewApiError(res)
+	}
+
+	versions := NewPapiVersions(property.parent.service)
 	if err = res.BodyJson(versions); err != nil {
 		return nil, err
 	}
@@ -268,10 +272,10 @@ func (property *PapiProperty) GetHostnames(version int) (*PapiHostnames, error) 
 func (property *PapiProperty) PostUnmarshalJSON() error {
 	property.Init()
 
-	property.Contract = NewPapiContract(&PapiContracts{service: property.parent.service})
+	property.Contract = NewPapiContract(NewPapiContracts(property.parent.service))
 	property.Contract.ContractId = property.ContractId
 
-	property.Group = NewPapiGroup(&PapiGroups{service: property.parent.service})
+	property.Group = NewPapiGroup(NewPapiGroups(property.parent.service))
 	property.Group.GroupId = property.GroupId
 
 	go property.Group.GetGroup()
@@ -319,9 +323,8 @@ func (property *PapiProperty) Save() error {
 		return NewApiError(res)
 	}
 
-	properties := &PapiProperties{service: property.parent.service}
-	err = res.BodyJson(properties)
-	if err != nil {
+	properties := NewPapiProperties(property.parent.service)
+	if err := res.BodyJson(properties); err != nil {
 		return err
 	}
 
