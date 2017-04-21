@@ -37,6 +37,42 @@ func (versions *PapiVersions) PostUnmarshalJSON() error {
 	return nil
 }
 
+func (versions *PapiVersions) GetVersions(property *PapiProperty, contract *PapiContract, group *PapiGroup) error {
+	if property == nil {
+		return errors.New("You must provide a property")
+	}
+
+	if contract == nil {
+		contract = property.Contract
+	}
+
+	if group == nil {
+		group = property.Group
+	}
+
+	res, err := versions.service.client.Get(
+		fmt.Sprintf(
+			"/papi/v0/properties/%s/versions?contractId=%s&groupId=%s",
+			property.PropertyId,
+			contract.ContractId,
+			group.GroupId,
+		),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	newVersions := NewPapiVersions(versions.service)
+	if err = res.BodyJson(versions); err != nil {
+		return err
+	}
+
+	*versions = *newVersions
+
+	return nil
+}
+
 // Todo: Mimic behavior of and fallback to /papi/v0/properties/{propertyId}/versions/latest{?contractId,groupId,activatedOn}
 func (versions *PapiVersions) GetLatestVersion() *PapiVersion {
 	if len(versions.Versions.Items) > 0 {

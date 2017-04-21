@@ -36,6 +36,26 @@ func (groups *PapiGroups) PostUnmarshalJSON() error {
 	return nil
 }
 
+func (groups *PapiGroups) GetGroups() error {
+	res, err := groups.service.client.Get("/papi/v0/groups")
+	if err != nil {
+		return err
+	}
+
+	if res.IsError() {
+		return NewApiError(res)
+	}
+
+	newGroups := NewPapiGroups(groups.service)
+	if err = res.BodyJson(newGroups); err != nil {
+		return err
+	}
+
+	*groups = *newGroups
+
+	return nil
+}
+
 func (groups *PapiGroups) AddGroup(newGroup *PapiGroup) {
 	if newGroup.GroupId != "" {
 		for key, group := range groups.Groups.Items {

@@ -57,6 +57,37 @@ func (cpcodes *PapiCpCodes) PostUnmarshalJSON() error {
 	return nil
 }
 
+func (cpcodes *PapiCpCodes) GetCpCodes(contract *PapiContract, group *PapiGroup) error {
+	if contract == nil {
+		contract = NewPapiContract(NewPapiContracts(cpcodes.service))
+		contract.ContractId = group.ContractIds[0]
+	}
+	res, err := cpcodes.service.client.Get(
+		fmt.Sprintf(
+			"/papi/v0/cpcodes?groupId=%s&contractId=%s",
+			group.GroupId,
+			contract.ContractId,
+		),
+	)
+	if err != nil {
+		return err
+	}
+
+	if res.IsError() {
+		return NewApiError(res)
+	}
+
+	newCpcodes := NewPapiCpCodes(cpcodes.service)
+	err = res.BodyJson(newCpcodes)
+	if err != nil {
+		return err
+	}
+
+	*cpcodes = *newCpcodes
+
+	return nil
+}
+
 func (cpcodes *PapiCpCodes) NewCpCode() *PapiCpCode {
 	return NewPapiCpCode(cpcodes)
 }

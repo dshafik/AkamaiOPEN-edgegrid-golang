@@ -36,6 +36,38 @@ func (properties *PapiProperties) PostUnmarshalJSON() error {
 	return nil
 }
 
+func (properties *PapiProperties) GetProperties(contract *PapiContract, group *PapiGroup) error {
+	if contract == nil {
+		contract = NewPapiContract(NewPapiContracts(properties.service))
+		contract.ContractId = group.ContractIds[0]
+	}
+
+	res, err := properties.service.client.Get(
+		fmt.Sprintf(
+			"/papi/v0/properties?groupId=%s&contractId=%s",
+			group.GroupId,
+			contract.ContractId,
+		),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if res.IsError() {
+		return NewApiError(res)
+	}
+
+	newProperties := NewPapiProperties(properties.service)
+	if err = res.BodyJson(newProperties); err != nil {
+		return err
+	}
+
+	*properties = *newProperties
+
+	return nil
+}
+
 func (properties *PapiProperties) AddProperty(newProperty *PapiProperty) {
 	if newProperty.Group.GroupId != "" {
 		for key, property := range properties.Properties.Items {
@@ -206,7 +238,8 @@ func (property *PapiProperty) GetHostnames(version int) (*PapiHostnames, error) 
 	if version == 0 {
 		version = property.LatestVersion
 	}
-	property.parent.service.client.Get(
+
+	res, err := property.parent.service.client.Get(
 		fmt.Sprintf(
 			"/papi/v0/properties/%s/versions/%d/hostnames/?contractId=%s&groupId=%s",
 			property.PropertyId,
@@ -216,7 +249,20 @@ func (property *PapiProperty) GetHostnames(version int) (*PapiHostnames, error) 
 		),
 	)
 
-	return nil, nil
+	if err != nil {
+		return nil, err
+	}
+
+	if res.IsError() {
+		return nil, NewApiError(res)
+	}
+
+	hostnames := NewPapiHostnames(property.parent.service)
+	if err := res.BodyJson(hostnames); err != nil {
+		return nil, err
+	}
+
+	return hostnames, nil
 }
 
 func (property *PapiProperty) PostUnmarshalJSON() error {

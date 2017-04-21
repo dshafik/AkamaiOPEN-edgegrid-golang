@@ -37,6 +37,43 @@ func (edgeHostnames *PapiEdgeHostnames) PostUnmarshalJSON() error {
 	return nil
 }
 
+func (edgeHostnames *PapiEdgeHostnames) GetEdgeHostnames(contract *PapiContract, group *PapiGroup, options string) error {
+	if contract == nil {
+		contract = NewPapiContract(NewPapiContracts(edgeHostnames.service))
+		contract.ContractId = group.ContractIds[0]
+	}
+
+	if options != "" {
+		options = fmt.Sprintf("&options=%s", options)
+	}
+
+	res, err := edgeHostnames.service.client.Get(
+		fmt.Sprintf(
+			"/papi/v0/edgehostnames?groupId=%s&contractId=%s%s",
+			group.GroupId,
+			contract.ContractId,
+			options,
+		),
+	)
+	if err != nil {
+		return err
+	}
+
+	if res.IsError() {
+		return NewApiError(res)
+	}
+
+	newEdgeHostnames := NewPapiEdgeHostnames(edgeHostnames.service)
+	err = res.BodyJson(newEdgeHostnames)
+	if err != nil {
+		return err
+	}
+
+	*edgeHostnames = *newEdgeHostnames
+
+	return nil
+}
+
 type PapiEdgeHostname struct {
 	Resource
 	parent             *PapiEdgeHostnames

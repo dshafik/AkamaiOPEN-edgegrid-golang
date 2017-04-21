@@ -37,6 +37,32 @@ type PapiProduct struct {
 	parent      *PapiProducts
 	ProductName string `json:"productName"`
 	ProductId   string `json:"productId"`
+func (products *PapiProducts) GetProducts(contract *PapiContract) error {
+	res, err := products.service.client.Get(
+		fmt.Sprintf(
+			"/papi/v0/products?contractId=%s",
+			contract.ContractId,
+		),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if res.IsError() {
+		return NewApiError(res)
+	}
+
+	newProducts := NewPapiProducts(products.service)
+	if err = res.BodyJson(products); err != nil {
+		return err
+	}
+
+	*products = *newProducts
+
+	return nil
+}
+
 }
 
 func NewPapiProduct(parent *PapiProducts) *PapiProduct {
