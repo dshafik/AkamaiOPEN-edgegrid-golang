@@ -194,11 +194,13 @@ func (c *Config) createAuthHeader(req *http.Request, timestamp string, nonce str
 	return signedAuthHeader
 }
 
-// AddRequestHeader sets the authorization header to use Akamai Open API
+// AddRequestHeader sets the Authorization header to use Akamai Open API
+// Deprecated: use Config.AddRequestHeader instead
 func AddRequestHeader(c Config, req *http.Request) *http.Request {
 	return c.AddRequestHeader(req)
 }
 
+// AddRequestHeader sets the Authorization header to use Akamai Open API
 func (c Config) AddRequestHeader(req *http.Request) *http.Request {
 	if c.Debug {
 		log.SetLevel(log.DebugLevel)
@@ -214,7 +216,10 @@ func (c Config) AddRequestHeader(req *http.Request) *http.Request {
 	return req
 }
 
-// InitConfig initializes configuration file
+// InitEdgeRc initializes using a configuration file in standard INI format
+//
+// By default, it uses the .edgerc found in the users home directory, and the
+// "default" section.
 func InitEdgeRc(filepath string, section string) (Config, error) {
 	var (
 		c               Config
@@ -263,6 +268,15 @@ func InitEdgeRc(filepath string, section string) (Config, error) {
 	return c, nil
 }
 
+// InitEnv initializes using the Environment (ENV)
+//
+// By default, it uses AKAMAI_HOST, AKAMAI_CLIENT_TOKEN, AKAMAI_CLIENT_SECRET,
+// AKAMAI_ACCESS_TOKEN, and AKAMAI_MAX_BODY variables.
+//
+// You can define multiple configurations by prefixing with the section name specified, e.g.
+// passing "ccu" will cause it to look for AKAMAI_CCU_HOST, etc.
+//
+// If AKAMAI_{SECTION} does not exist, it will fall back to just AKAMAI_.
 func InitEnv(section string) (Config, error) {
 	var (
 		c               Config
@@ -320,6 +334,7 @@ func InitEnv(section string) (Config, error) {
 	return c, nil
 }
 
+// InitConfig initializes using a configuration file in standard INI format
 // Deprecated: Backwards compatible wrapper around InitEdgeRc which should be used instead
 func InitConfig(filepath string, section string) Config {
 	c, err := InitEdgeRc(filepath, section)
@@ -330,6 +345,8 @@ func InitConfig(filepath string, section string) Config {
 	return c
 }
 
+// Init initializes a configuration using the environment, falling
+// back to INI file.
 func Init(filepath string, section string) (Config, error) {
 	if section == "" {
 		section = defaultSection
@@ -339,7 +356,7 @@ func Init(filepath string, section string) (Config, error) {
 
 	_, exists := os.LookupEnv("AKAMAI_" + section + "_HOST")
 	if !exists && section == defaultSection {
-		_, exists := os.LookupEnv("AKAMAI_HOST")
+		_, exists = os.LookupEnv("AKAMAI_HOST")
 
 		if exists {
 			return InitEnv("")
