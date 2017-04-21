@@ -8,7 +8,7 @@ import (
 )
 
 type PapiRules struct {
-	Resource
+	resource
 	service         *PapiV0Service
 	AccountID       string            `json:"accountId"`
 	ContractID      string            `json:"contractId"`
@@ -276,7 +276,7 @@ func (rules *PapiRules) FindBehavior(path string) (*PapiBehavior, error) {
 }
 
 type PapiRule struct {
-	Resource
+	resource
 	parent         *PapiRules
 	depth          int
 	Name           string          `json:"name"`
@@ -329,7 +329,7 @@ func (rule *PapiRule) AddBehavior(behavior *PapiBehavior) {
 }
 
 type PapiCriteria struct {
-	Resource
+	resource
 	parent  *PapiRule
 	Name    string           `json:"name"`
 	Options *PapiOptionValue `json:"options"`
@@ -347,7 +347,7 @@ func (criteria *PapiCriteria) validateOptions() error {
 }
 
 type PapiBehavior struct {
-	Resource
+	resource
 	parent  *PapiRule
 	Name    string           `json:"name"`
 	Options *PapiOptionValue `json:"options"`
@@ -367,7 +367,7 @@ func (behavior *PapiBehavior) validateOptions() error {
 type PapiOptionValue map[string]interface{}
 
 type PapiAvailableCriteria struct {
-	Resource
+	resource
 	service           *PapiV0Service
 	ContractID        string `json:"contractId"`
 	GroupID           string `json:"groupId"`
@@ -423,7 +423,7 @@ func (availableCriteria *PapiAvailableCriteria) GetAvailableCriteria(property *P
 }
 
 type PapiAvailableBehaviors struct {
-	Resource
+	resource
 	service    *PapiV0Service
 	ContractID string `json:"contractId"`
 	GroupID    string `json:"groupId"`
@@ -488,7 +488,7 @@ func (availableBehaviors *PapiAvailableBehaviors) GetAvailableBehaviors(property
 }
 
 type PapiAvailableBehavior struct {
-	Resource
+	resource
 	parent     *PapiAvailableBehaviors
 	Name       string `json:"name"`
 	SchemaLink string `json:"schemaLink"`
@@ -517,7 +517,7 @@ func (behavior *PapiAvailableBehavior) GetSchema() (*gojsonschema.Schema, error)
 }
 
 type PapiRuleErrors struct {
-	Resource
+	resource
 	Type         string `json:"type"`
 	Title        string `json:"title"`
 	Detail       string `json:"detail"`

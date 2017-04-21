@@ -6,7 +6,7 @@ import (
 )
 
 type PapiContracts struct {
-	Resource
+	resource
 	service   *PapiV0Service
 	AccountID string `json:"accountId"`
 	Contracts struct {
@@ -64,7 +64,7 @@ func (contracts *PapiContracts) GetContracts() error {
 }
 
 type PapiContract struct {
-	Resource
+	resource
 	parent           *PapiContracts
 	ContractID       string `json:"contractId"`
 	ContractTypeName string `json:"contractTypeName"`

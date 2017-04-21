@@ -1,7 +1,7 @@
 package edgegrid
 
 type PapiClientSettings struct {
-	Resource
+	resource
 	service    *PapiV0Service
 	RuleFormat string `json:"ruleFormat"`
 }

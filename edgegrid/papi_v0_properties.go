@@ -6,7 +6,7 @@ import (
 )
 
 type PapiProperties struct {
-	Resource
+	resource
 	service    *PapiV0Service
 	Properties struct {
 		Items []*PapiProperty `json:"items"`
@@ -116,7 +116,7 @@ func (properties *PapiProperties) NewProperty(contract *PapiContract, group *Pap
 }
 
 type PapiProperty struct {
-	Resource
+	resource
 	parent            *PapiProperties
 	AccountID         string                 `json:"accountId,omitempty"`
 	Contract          *PapiContract          `json:"-"`
@@ -362,7 +362,7 @@ func (property *PapiProperty) Delete() error {
 }
 
 type PapiClonePropertyFrom struct {
-	Resource
+	resource
 	PropertyID           string `json:"propertyId"`
 	Version              int    `json:"version"`
 	CopyHostnames        bool   `json:"copyHostnames,omitempty"`

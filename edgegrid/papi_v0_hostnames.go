@@ -3,7 +3,7 @@ package edgegrid
 import "github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid/json"
 
 type PapiHostnames struct {
-	Resource
+	resource
 	service         *PapiV0Service
 	AccountID       string `json:"accountId"`
 	ContractID      string `json:"contractId"`
@@ -41,7 +41,7 @@ func (hostnames *PapiHostnames) PostUnmarshalJSON() error {
 }
 
 type PapiHostname struct {
-	Resource
+	resource
 	parent         *PapiHostnames
 	CnameType      string `json:"cnameType"`
 	EdgeHostnameID string `json:"edgeHostnameId"`

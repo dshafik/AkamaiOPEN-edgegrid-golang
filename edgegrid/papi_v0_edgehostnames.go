@@ -7,7 +7,7 @@ import (
 )
 
 type PapiEdgeHostnames struct {
-	Resource
+	resource
 	service       *PapiV0Service
 	AccountID     string `json:"accountId"`
 	ContractID    string `json:"contractId"`
@@ -78,7 +78,7 @@ func (edgeHostnames *PapiEdgeHostnames) GetEdgeHostnames(contract *PapiContract,
 }
 
 type PapiEdgeHostname struct {
-	Resource
+	resource
 	parent             *PapiEdgeHostnames
 	EdgeHostnameID     string `json:"edgeHostnameId,omitempty"`
 	EdgeHostnameDomain string `json:"edgeHostnameDomain,omitempty"`

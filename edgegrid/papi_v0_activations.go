@@ -6,7 +6,7 @@ import (
 )
 
 type PapiActivations struct {
-	Resource
+	resource
 	service     *PapiV0Service
 	AccountID   string `json:"accountId"`
 	ContractID  string `json:"contractId"`
@@ -55,7 +55,7 @@ func (activations *PapiActivations) GetLatestActivation(network PapiNetworkValue
 }
 
 type PapiActivation struct {
-	Resource
+	resource
 	parent              *PapiActivations
 	ActivationID        string              `json:"activationId,omitempty"`
 	ActivationType      PapiActivationValue `json:"activationType,omitempty"`
