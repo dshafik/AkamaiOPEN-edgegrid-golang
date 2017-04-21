@@ -8,7 +8,7 @@ import (
 type PapiContracts struct {
 	Resource
 	service   *PapiV0Service
-	AccountId string `json:"accountId"`
+	AccountID string `json:"accountId"`
 	Contracts struct {
 		Items []*PapiContract `json:"items"`
 	} `json:"contracts"`
@@ -28,8 +28,8 @@ func (contracts *PapiContracts) PostUnmarshalJSON() error {
 	for key, contract := range contracts.Contracts.Items {
 		contracts.Contracts.Items[key].parent = contracts
 
-		if contract, ok := json.ImplementsPostJsonUnmarshaler(contract); ok {
-			if err := contract.(json.PostJsonUnmarshaler).PostUnmarshalJSON(); err != nil {
+		if contract, ok := json.ImplementsPostJSONUnmarshaler(contract); ok {
+			if err := contract.(json.PostJSONUnmarshaler).PostUnmarshalJSON(); err != nil {
 				return err
 			}
 		}
@@ -46,11 +46,11 @@ func (contracts *PapiContracts) GetContracts() error {
 	}
 
 	if res.IsError() {
-		return NewApiError(res)
+		return NewAPIError(res)
 	}
 
 	newContracts := NewPapiContracts(contracts.service)
-	if err = res.BodyJson(newContracts); err != nil {
+	if err = res.BodyJSON(newContracts); err != nil {
 		return err
 	}
 
@@ -66,7 +66,7 @@ func (contracts *PapiContracts) GetContracts() error {
 type PapiContract struct {
 	Resource
 	parent           *PapiContracts
-	ContractId       string `json:"contractId"`
+	ContractID       string `json:"contractId"`
 	ContractTypeName string `json:"contractTypeName"`
 }
 
@@ -85,7 +85,7 @@ func (contract *PapiContract) GetContract() {
 	}
 
 	for _, c := range contracts.Contracts.Items {
-		if c.ContractId == contract.ContractId {
+		if c.ContractID == contract.ContractID {
 			contract.parent = c.parent
 			contract.ContractTypeName = c.ContractTypeName
 			contract.Complete <- true
@@ -99,7 +99,7 @@ func (contract *PapiContract) GetProducts() (*PapiProducts, error) {
 	res, err := contract.parent.service.client.Get(
 		fmt.Sprintf(
 			"/papi/v0/products?contractId=%s",
-			contract.ContractId,
+			contract.ContractID,
 		),
 	)
 
@@ -108,11 +108,11 @@ func (contract *PapiContract) GetProducts() (*PapiProducts, error) {
 	}
 
 	if res.IsError() {
-		return nil, NewApiError(res)
+		return nil, NewAPIError(res)
 	}
 
 	products := NewPapiProducts(contract.parent.service)
-	err = res.BodyJson(products)
+	err = res.BodyJSON(products)
 	if err != nil {
 		return nil, err
 	}

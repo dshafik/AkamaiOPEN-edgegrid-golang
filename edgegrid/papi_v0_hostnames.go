@@ -5,10 +5,10 @@ import "github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid/json"
 type PapiHostnames struct {
 	Resource
 	service         *PapiV0Service
-	AccountId       string `json:"accountId"`
-	ContractId      string `json:"contractId"`
-	GroupId         string `json:"groupId"`
-	PropertyId      string `json:"propertyId"`
+	AccountID       string `json:"accountId"`
+	ContractID      string `json:"contractId"`
+	GroupID         string `json:"groupId"`
+	PropertyID      string `json:"propertyId"`
 	PropertyVersion int    `json:"propertyVersion"`
 	Etag            string `json:"etag"`
 	Hostnames       struct {
@@ -28,8 +28,8 @@ func (hostnames *PapiHostnames) PostUnmarshalJSON() error {
 
 	for key, hostname := range hostnames.Hostnames.Items {
 		hostnames.Hostnames.Items[key].parent = hostnames
-		if hostname, ok := json.ImplementsPostJsonUnmarshaler(hostname); ok {
-			if err := hostname.(json.PostJsonUnmarshaler).PostUnmarshalJSON(); err != nil {
+		if hostname, ok := json.ImplementsPostJSONUnmarshaler(hostname); ok {
+			if err := hostname.(json.PostJSONUnmarshaler).PostUnmarshalJSON(); err != nil {
 				return err
 			}
 		}
@@ -44,7 +44,7 @@ type PapiHostname struct {
 	Resource
 	parent         *PapiHostnames
 	CnameType      string `json:"cnameType"`
-	EdgeHostnameId string `json:"edgeHostnameId"`
+	EdgeHostnameID string `json:"edgeHostnameId"`
 	CnameFrom      string `json:"cnameFrom"`
 	CnameTo        string `json:"cnameTo,omitempty"`
 }

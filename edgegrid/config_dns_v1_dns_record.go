@@ -2,7 +2,7 @@ package edgegrid
 
 import "strings"
 
-type DnsRecord struct {
+type DNSRecord struct {
 	RecordType          string `json:"-"`
 	Active              bool   `json:"active,omitempty"`
 	Algorithm           int    `json:"algorithm,omitempty"`
@@ -25,7 +25,7 @@ type DnsRecord struct {
 	Name                string `json:"name,omitempty"`
 	NextHashedOwnerName string `json:"next_hashed_owner_name,omitempty"`
 	Order               int    `json:"order,omitempty"`
-	OriginalTtl         int    `json:"original_ttl,omitempty"`
+	OriginalTTL         int    `json:"original_ttl,omitempty"`
 	Originserver        string `json:"originserver,omitempty"`
 	Port                int    `json:"port,omitempty"`
 	Preference          int    `json:"preference,omitempty"`
@@ -43,17 +43,17 @@ type DnsRecord struct {
 	Software            string `json:"software,omitempty"`
 	Subtype             int    `json:"subtype,omitempty"`
 	Target              string `json:"target,omitempty"`
-	Ttl                 int    `json:"ttl,omitempty"`
+	TTL                 int    `json:"ttl,omitempty"`
 	Txt                 string `json:"txt,omitempty"`
 	TypeBitmaps         string `json:"type_bitmaps,omitempty"`
 	TypeCovered         string `json:"type_coverered,omitempty"`
 	Weight              uint   `json:"weight,omitempty"`
 }
 
-func (record *DnsRecord) Allows(field string) bool {
+func (record *DNSRecord) Allows(field string) bool {
 	field = strings.ToLower(field)
 
-	field_map := map[string]map[string]struct{}{
+	fieldMap := map[string]map[string]struct{}{
 		"active": {
 			"A":          {},
 			"AAAA":       {},
@@ -200,7 +200,7 @@ func (record *DnsRecord) Allows(field string) bool {
 		"weight":      {"SRV": {}},
 	}
 
-	_, ok := field_map[field][strings.ToUpper(record.RecordType)]
+	_, ok := fieldMap[field][strings.ToUpper(record.RecordType)]
 
 	return ok
 }

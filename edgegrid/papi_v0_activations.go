@@ -8,9 +8,9 @@ import (
 type PapiActivations struct {
 	Resource
 	service     *PapiV0Service
-	AccountId   string `json:"accountId"`
-	ContractId  string `json:"contractId"`
-	GroupId     string `json:"groupId"`
+	AccountID   string `json:"accountId"`
+	ContractID  string `json:"contractId"`
+	GroupID     string `json:"groupId"`
 	Activations struct {
 		Items []*PapiActivation `json:"items"`
 	} `json:"activations"`
@@ -24,20 +24,20 @@ func NewPapiActivations(service *PapiV0Service) *PapiActivations {
 }
 
 func (activations *PapiActivations) GetLatestProductionActivation(status PapiStatusValue) (*PapiActivation, error) {
-	return activations.GetLatestActivation(PAPI_NETWORK_PRODUCTION, status)
+	return activations.GetLatestActivation(papiNetworkProduction, status)
 }
 
 func (activations *PapiActivations) GetLatestStagingActivation(status PapiStatusValue) (*PapiActivation, error) {
-	return activations.GetLatestActivation(PAPI_NETWORK_STAGING, status)
+	return activations.GetLatestActivation(papiNetworkStaging, status)
 }
 
 func (activations *PapiActivations) GetLatestActivation(network PapiNetworkValue, status PapiStatusValue) (*PapiActivation, error) {
 	if network == "" {
-		network = PAPI_NETWORK_PRODUCTION
+		network = papiNetworkProduction
 	}
 
 	if status == "" {
-		status = PAPI_STATUS_ACTIVE
+		status = papiStatusActive
 	}
 
 	var latest *PapiActivation
@@ -57,13 +57,13 @@ func (activations *PapiActivations) GetLatestActivation(network PapiNetworkValue
 type PapiActivation struct {
 	Resource
 	parent              *PapiActivations
-	ActivationId        string              `json:"activationId,omitempty"`
+	ActivationID        string              `json:"activationId,omitempty"`
 	ActivationType      PapiActivationValue `json:"activationType,omitempty"`
 	AcknowledgeWarnings []string            `json:"acknowledgeWarnings,omitempty"`
 	FastPush            bool                `json:"fastPush,omitempty"`
-	IgnoreHttpErrors    bool                `json:"ignoreHttpErrors,omitempty"`
+	IgnoreHTTPErrors    bool                `json:"ignoreHttpErrors,omitempty"`
 	PropertyName        string              `json:"propertyName,omitempty"`
-	PropertyId          string              `json:"propertyId,omitempty"`
+	PropertyID          string              `json:"propertyId,omitempty"`
 	PropertyVersion     int                 `json:"propertyVersion"`
 	Network             PapiNetworkValue    `json:"network"`
 	Status              PapiStatusValue     `json:"status,omitempty"`
@@ -85,19 +85,19 @@ type PapiNetworkValue string
 type PapiStatusValue string
 
 const (
-	PAPI_ACTIVATION_TYPE_ACTIVATE    PapiActivationValue = "ACTIVATE"
-	PAPI_ACTIVATION_TYPE_DEACTIVATE  PapiActivationValue = "DEACTIVATE"
-	PAPI_NETWORK_PRODUCTION          PapiNetworkValue    = "PRODUCTION"
-	PAPI_NETWORK_STAGING             PapiNetworkValue    = "STAGING"
-	PAPI_STATUS_ACTIVE               PapiStatusValue     = "ACTIVE"
-	PAPI_STATUS_INACTIVE             PapiStatusValue     = "INACTIVE"
-	PAPI_STATUS_PENDING              PapiStatusValue     = "PENDING"
-	PAPI_STATUS_ZONE_1               PapiStatusValue     = "ZONE_1"
-	PAPI_STATUS_ZONE_2               PapiStatusValue     = "ZONE_2"
-	PAPI_STATUS_ZONE_3               PapiStatusValue     = "ZONE_3"
-	PAPI_STATUS_ABORTED              PapiStatusValue     = "ABORTED"
-	PAPI_STATUS_FAILED               PapiStatusValue     = "FAILED"
-	PAPI_STATUS_DEACTIVATED          PapiStatusValue     = "DEACTIVATED"
-	PAPI_STATUS_PENDING_DEACTIVATION PapiStatusValue     = "PENDING_DEACTIVATION"
-	PAPI_STATUS_NEW                  PapiStatusValue     = "NEW"
+	papiActivationTypeActivate    PapiActivationValue = "ACTIVATE"
+	papiActivationTypeDeactivate  PapiActivationValue = "DEACTIVATE"
+	papiNetworkProduction         PapiNetworkValue    = "PRODUCTION"
+	papiNetworkStaging            PapiNetworkValue    = "STAGING"
+	papiStatusActive              PapiStatusValue     = "ACTIVE"
+	papiStatusInactive            PapiStatusValue     = "INACTIVE"
+	papiStatusPending             PapiStatusValue     = "PENDING"
+	papiStatusZone1               PapiStatusValue     = "ZONE_1"
+	papiStatusZone2               PapiStatusValue     = "ZONE_2"
+	papiStatusZone3               PapiStatusValue     = "ZONE_3"
+	papiStatusAborted             PapiStatusValue     = "ABORTED"
+	papiStatusFailed              PapiStatusValue     = "FAILED"
+	papiStatusDeactivated         PapiStatusValue     = "DEACTIVATED"
+	papiStatusPendingDeactivation PapiStatusValue     = "PENDING_DEACTIVATION"
+	papiStatusNew                 PapiStatusValue     = "NEW"
 )

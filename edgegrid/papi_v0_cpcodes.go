@@ -11,10 +11,10 @@ import (
 type PapiCpCodes struct {
 	Resource
 	service    *PapiV0Service
-	AccountId  string        `json:"accountId"`
+	AccountID  string        `json:"accountId"`
 	Contract   *PapiContract `json:"-"`
-	ContractId string        `json:"contractId"`
-	GroupId    string        `json:"groupId"`
+	ContractID string        `json:"contractId"`
+	GroupID    string        `json:"groupId"`
 	Group      *PapiGroup    `json:"-"`
 	CpCodes    struct {
 		Items []*PapiCpCode `json:"items"`
@@ -30,10 +30,10 @@ func (cpcodes *PapiCpCodes) PostUnmarshalJSON() error {
 	cpcodes.Init()
 
 	cpcodes.Contract = NewPapiContract(NewPapiContracts(cpcodes.service))
-	cpcodes.Contract.ContractId = cpcodes.ContractId
+	cpcodes.Contract.ContractID = cpcodes.ContractID
 
 	cpcodes.Group = NewPapiGroup(NewPapiGroups(cpcodes.service))
-	cpcodes.Group.GroupId = cpcodes.GroupId
+	cpcodes.Group.GroupID = cpcodes.GroupID
 
 	go cpcodes.Group.GetGroup()
 	go cpcodes.Contract.GetContract()
@@ -47,8 +47,8 @@ func (cpcodes *PapiCpCodes) PostUnmarshalJSON() error {
 	for key, cpcode := range cpcodes.CpCodes.Items {
 		cpcodes.CpCodes.Items[key].parent = cpcodes
 
-		if cpcode, ok := json.ImplementsPostJsonUnmarshaler(cpcode); ok {
-			if err := cpcode.(json.PostJsonUnmarshaler).PostUnmarshalJSON(); err != nil {
+		if cpcode, ok := json.ImplementsPostJSONUnmarshaler(cpcode); ok {
+			if err := cpcode.(json.PostJSONUnmarshaler).PostUnmarshalJSON(); err != nil {
 				return err
 			}
 		}
@@ -60,13 +60,13 @@ func (cpcodes *PapiCpCodes) PostUnmarshalJSON() error {
 func (cpcodes *PapiCpCodes) GetCpCodes(contract *PapiContract, group *PapiGroup) error {
 	if contract == nil {
 		contract = NewPapiContract(NewPapiContracts(cpcodes.service))
-		contract.ContractId = group.ContractIds[0]
+		contract.ContractID = group.ContractIDs[0]
 	}
 	res, err := cpcodes.service.client.Get(
 		fmt.Sprintf(
 			"/papi/v0/cpcodes?groupId=%s&contractId=%s",
-			group.GroupId,
-			contract.ContractId,
+			group.GroupID,
+			contract.ContractID,
 		),
 	)
 	if err != nil {
@@ -74,11 +74,11 @@ func (cpcodes *PapiCpCodes) GetCpCodes(contract *PapiContract, group *PapiGroup)
 	}
 
 	if res.IsError() {
-		return NewApiError(res)
+		return NewAPIError(res)
 	}
 
 	newCpcodes := NewPapiCpCodes(cpcodes.service)
-	err = res.BodyJson(newCpcodes)
+	err = res.BodyJSON(newCpcodes)
 	if err != nil {
 		return err
 	}
@@ -95,10 +95,10 @@ func (cpcodes *PapiCpCodes) NewCpCode() *PapiCpCode {
 type PapiCpCode struct {
 	Resource
 	parent      *PapiCpCodes
-	CpcodeId    string    `json:"cpcodeId,omitempty"`
+	CpcodeID    string    `json:"cpcodeId,omitempty"`
 	CpcodeName  string    `json:"cpcodeName"`
-	ProductId   string    `json:"productId,omitempty"`
-	ProductIds  []string  `json:"productIds,omitempty"`
+	ProductID   string    `json:"productId,omitempty"`
+	ProductIDs  []string  `json:"productIds,omitempty"`
 	CreatedDate time.Time `json:"createdDate,omitempty"`
 }
 
@@ -108,8 +108,8 @@ func NewPapiCpCode(parent *PapiCpCodes) *PapiCpCode {
 	return cpcode
 }
 
-func (cpcode *PapiCpCode) Id() int {
-	id, err := strconv.Atoi(strings.TrimPrefix(cpcode.CpcodeId, "cpc_"))
+func (cpcode *PapiCpCode) ID() int {
+	id, err := strconv.Atoi(strings.TrimPrefix(cpcode.CpcodeID, "cpc_"))
 	if err != nil {
 		return 0
 	}
@@ -118,13 +118,13 @@ func (cpcode *PapiCpCode) Id() int {
 }
 
 func (cpcode *PapiCpCode) Save() error {
-	res, err := cpcode.parent.service.client.PostJson(
+	res, err := cpcode.parent.service.client.PostJSON(
 		fmt.Sprintf(
 			"/papi/v0/cpcodes?contractId=%s&groupId=%s",
-			cpcode.parent.Contract.ContractId,
-			cpcode.parent.Group.GroupId,
+			cpcode.parent.Contract.ContractID,
+			cpcode.parent.Group.GroupID,
 		),
-		map[string]interface{}{"productId": cpcode.ProductId, "productIds": cpcode.ProductIds, "cpcodeName": cpcode.CpcodeName},
+		map[string]interface{}{"productId": cpcode.ProductID, "productIds": cpcode.ProductIDs, "cpcodeName": cpcode.CpcodeName},
 	)
 
 	if err != nil {
@@ -132,11 +132,11 @@ func (cpcode *PapiCpCode) Save() error {
 	}
 
 	if res.IsError() {
-		return NewApiError(res)
+		return NewAPIError(res)
 	}
 
 	var location map[string]interface{}
-	if err := res.BodyJson(&location); err != nil {
+	if err := res.BodyJSON(&location); err != nil {
 		return err
 	}
 
@@ -149,11 +149,11 @@ func (cpcode *PapiCpCode) Save() error {
 	}
 
 	if res.IsError() {
-		return NewApiError(res)
+		return NewAPIError(res)
 	}
 
 	cpcodes := NewPapiCpCodes(cpcode.parent.service)
-	err = res.BodyJson(cpcodes)
+	err = res.BodyJSON(cpcodes)
 	if err != nil {
 		return err
 	}

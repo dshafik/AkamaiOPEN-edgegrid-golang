@@ -1,3 +1,3 @@
 package edgegrid
 
-type DnsRecordSet []*DnsRecord
+type DNSRecordSet []*DNSRecord

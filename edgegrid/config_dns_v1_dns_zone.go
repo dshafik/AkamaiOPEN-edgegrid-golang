@@ -7,48 +7,48 @@ import (
 	"time"
 )
 
-type DnsZone struct {
-	service *ConfigDnsV1Service
+type DNSZone struct {
+	service *ConfigDNSV1Service
 	Token   string `json:"token"`
 	Zone    struct {
 		Name       string                  `json:"name,omitempty"`
-		A          DnsRecordSet            `json:"a,omitempty"`
-		AAAA       DnsRecordSet            `json:"aaaa,omitempty"`
-		Afsdb      DnsRecordSet            `json:"afsdb,omitempty"`
-		Cname      DnsRecordSet            `json:"cname,omitempty"`
-		Dnskey     DnsRecordSet            `json:"dnskey,omitempty"`
-		Ds         DnsRecordSet            `json:"ds,omitempty"`
-		Hinfo      DnsRecordSet            `json:"hinfo,omitempty"`
-		Loc        DnsRecordSet            `json:"loc,omitempty"`
-		Mx         DnsRecordSet            `json:"mx,omitempty"`
-		Naptr      DnsRecordSet            `json:"naptr,omitempty"`
-		Ns         DnsRecordSet            `json:"ns,omitempty"`
-		Nsec3      DnsRecordSet            `json:"nsec3,omitempty"`
-		Nsec3param DnsRecordSet            `json:"nsec3param,omitempty"`
-		Ptr        DnsRecordSet            `json:"ptr,omitempty"`
-		Rp         DnsRecordSet            `json:"rp,omitempty"`
-		Rrsig      DnsRecordSet            `json:"rrsig,omitempty"`
-		Soa        *DnsRecord              `json:"soa,omitempty"`
-		Spf        DnsRecordSet            `json:"spf,omitempty"`
-		Srv        DnsRecordSet            `json:"srv,omitempty"`
-		Sshfp      DnsRecordSet            `json:"sshfp,omitempty"`
-		Txt        DnsRecordSet            `json:"txt,omitempty"`
-		Records    map[string]DnsRecordSet `json:"-"`
+		A          DNSRecordSet            `json:"a,omitempty"`
+		AAAA       DNSRecordSet            `json:"aaaa,omitempty"`
+		Afsdb      DNSRecordSet            `json:"afsdb,omitempty"`
+		Cname      DNSRecordSet            `json:"cname,omitempty"`
+		Dnskey     DNSRecordSet            `json:"dnskey,omitempty"`
+		Ds         DNSRecordSet            `json:"ds,omitempty"`
+		Hinfo      DNSRecordSet            `json:"hinfo,omitempty"`
+		Loc        DNSRecordSet            `json:"loc,omitempty"`
+		Mx         DNSRecordSet            `json:"mx,omitempty"`
+		Naptr      DNSRecordSet            `json:"naptr,omitempty"`
+		Ns         DNSRecordSet            `json:"ns,omitempty"`
+		Nsec3      DNSRecordSet            `json:"nsec3,omitempty"`
+		Nsec3param DNSRecordSet            `json:"nsec3param,omitempty"`
+		Ptr        DNSRecordSet            `json:"ptr,omitempty"`
+		Rp         DNSRecordSet            `json:"rp,omitempty"`
+		Rrsig      DNSRecordSet            `json:"rrsig,omitempty"`
+		Soa        *DNSRecord              `json:"soa,omitempty"`
+		Spf        DNSRecordSet            `json:"spf,omitempty"`
+		Srv        DNSRecordSet            `json:"srv,omitempty"`
+		Sshfp      DNSRecordSet            `json:"sshfp,omitempty"`
+		Txt        DNSRecordSet            `json:"txt,omitempty"`
+		Records    map[string]DNSRecordSet `json:"-"`
 	} `json:"zone"`
 }
 
-func (zone *DnsZone) Save() error {
+func (zone *DNSZone) Save() error {
 	zone.unmarshalRecords()
 
 	zone.Zone.Soa.Serial = int(time.Now().Unix())
 
-	res, err := zone.service.client.PostJson("/config-dns/v1/zones/"+zone.Zone.Name, zone)
+	res, err := zone.service.client.PostJSON("/config-dns/v1/zones/"+zone.Zone.Name, zone)
 	if err != nil {
 		return err
 	}
 
 	if res.IsError() {
-		err := NewApiError(res)
+		err := NewAPIError(res)
 		return fmt.Errorf("Unable to save record (%s)", err.Error())
 	}
 
@@ -76,8 +76,8 @@ func (zone *DnsZone) Save() error {
 	return nil
 }
 
-func (zone *DnsZone) marshalRecords() {
-	zone.Zone.Records = make(map[string]DnsRecordSet)
+func (zone *DNSZone) marshalRecords() {
+	zone.Zone.Records = make(map[string]DNSRecordSet)
 	zone.Zone.Records["A"] = zone.Zone.A
 	zone.Zone.Records["AAAA"] = zone.Zone.AAAA
 	zone.Zone.Records["AFSDB"] = zone.Zone.Afsdb
@@ -94,14 +94,14 @@ func (zone *DnsZone) marshalRecords() {
 	zone.Zone.Records["PTR"] = zone.Zone.Ptr
 	zone.Zone.Records["RP"] = zone.Zone.Rp
 	zone.Zone.Records["RRSIG"] = zone.Zone.Rrsig
-	zone.Zone.Records["SOA"] = []*DnsRecord{zone.Zone.Soa}
+	zone.Zone.Records["SOA"] = []*DNSRecord{zone.Zone.Soa}
 	zone.Zone.Records["SPF"] = zone.Zone.Spf
 	zone.Zone.Records["SRV"] = zone.Zone.Srv
 	zone.Zone.Records["SSHFP"] = zone.Zone.Sshfp
 	zone.Zone.Records["TXT"] = zone.Zone.Txt
 }
 
-func (zone *DnsZone) unmarshalRecords() {
+func (zone *DNSZone) unmarshalRecords() {
 	zone.Zone.A = zone.Zone.Records["A"]
 	zone.Zone.AAAA = zone.Zone.Records["AAAA"]
 	zone.Zone.Afsdb = zone.Zone.Records["AFSDB"]
@@ -125,7 +125,7 @@ func (zone *DnsZone) unmarshalRecords() {
 	zone.Zone.Txt = zone.Zone.Records["TXT"]
 }
 
-func (zone *DnsZone) fixupCnames(record *DnsRecord) {
+func (zone *DNSZone) fixupCnames(record *DNSRecord) {
 	if record.RecordType == "CNAME" {
 		names := make(map[string]string, len(zone.Zone.Records["CNAME"]))
 		for _, record := range zone.Zone.Records["CNAME"] {
@@ -137,7 +137,7 @@ func (zone *DnsZone) fixupCnames(record *DnsRecord) {
 				continue
 			}
 
-			newRecords := DnsRecordSet{}
+			newRecords := DNSRecordSet{}
 			for _, record := range records {
 				if _, ok := names[record.Name]; !ok {
 					newRecords = append(newRecords, record)
@@ -154,7 +154,7 @@ func (zone *DnsZone) fixupCnames(record *DnsRecord) {
 	} else if record.Name != "" {
 		name := strings.ToLower(record.Name)
 
-		newRecords := DnsRecordSet{}
+		newRecords := DNSRecordSet{}
 		for _, cname := range zone.Zone.Records["CNAME"] {
 			if strings.ToLower(cname.Name) != name {
 				newRecords = append(newRecords, cname)

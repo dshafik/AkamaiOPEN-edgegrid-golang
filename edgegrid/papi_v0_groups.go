@@ -8,7 +8,7 @@ import (
 type PapiGroups struct {
 	Resource
 	service     *PapiV0Service
-	AccountId   string `json:"accountId"`
+	AccountID   string `json:"accountId"`
 	AccountName string `json:"accountName"`
 	Groups      struct {
 		Items []*PapiGroup `json:"items"`
@@ -24,8 +24,8 @@ func (groups *PapiGroups) PostUnmarshalJSON() error {
 	groups.Init()
 	for key, group := range groups.Groups.Items {
 		groups.Groups.Items[key].parent = groups
-		if group, ok := json.ImplementsPostJsonUnmarshaler(group); ok {
-			if err := group.(json.PostJsonUnmarshaler).PostUnmarshalJSON(); err != nil {
+		if group, ok := json.ImplementsPostJSONUnmarshaler(group); ok {
+			if err := group.(json.PostJSONUnmarshaler).PostUnmarshalJSON(); err != nil {
 				return err
 			}
 		}
@@ -43,11 +43,11 @@ func (groups *PapiGroups) GetGroups() error {
 	}
 
 	if res.IsError() {
-		return NewApiError(res)
+		return NewAPIError(res)
 	}
 
 	newGroups := NewPapiGroups(groups.service)
-	if err = res.BodyJson(newGroups); err != nil {
+	if err = res.BodyJSON(newGroups); err != nil {
 		return err
 	}
 
@@ -57,9 +57,9 @@ func (groups *PapiGroups) GetGroups() error {
 }
 
 func (groups *PapiGroups) AddGroup(newGroup *PapiGroup) {
-	if newGroup.GroupId != "" {
+	if newGroup.GroupID != "" {
 		for key, group := range groups.Groups.Items {
-			if group.GroupId == newGroup.GroupId {
+			if group.GroupID == newGroup.GroupID {
 				groups.Groups.Items[key] = newGroup
 				return
 			}
@@ -92,9 +92,9 @@ type PapiGroup struct {
 	Resource
 	parent        *PapiGroups
 	GroupName     string   `json:"groupName"`
-	GroupId       string   `json:"groupId"`
-	ParentGroupId string   `json:"parentGroupId,omitempty"`
-	ContractIds   []string `json:"contractIds"`
+	GroupID       string   `json:"groupId"`
+	ParentGroupID string   `json:"parentGroupId,omitempty"`
+	ContractIDs   []string `json:"contractIds"`
 }
 
 func NewPapiGroup(parent *PapiGroups) *PapiGroup {
@@ -112,11 +112,11 @@ func (group *PapiGroup) GetGroup() {
 	}
 
 	for _, g := range groups.Groups.Items {
-		if g.GroupId == group.GroupId {
+		if g.GroupID == group.GroupID {
 			group.parent = groups
-			group.ContractIds = g.ContractIds
+			group.ContractIDs = g.ContractIDs
 			group.GroupName = g.GroupName
-			group.ParentGroupId = g.ParentGroupId
+			group.ParentGroupID = g.ParentGroupID
 			group.Complete <- true
 			return
 		}
