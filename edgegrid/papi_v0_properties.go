@@ -262,7 +262,7 @@ func (property *PapiProperty) GetHostnames(version int) (*PapiHostnames, error) 
 	}
 
 	hostnames := NewPapiHostnames(property.parent.service)
-	if err := res.BodyJSON(hostnames); err != nil {
+	if err = res.BodyJSON(hostnames); err != nil {
 		return nil, err
 	}
 
@@ -309,7 +309,7 @@ func (property *PapiProperty) Save() error {
 	}
 
 	var location map[string]interface{}
-	if err := res.BodyJSON(&location); err != nil {
+	if err = res.BodyJSON(&location); err != nil {
 		return err
 	}
 
@@ -326,7 +326,7 @@ func (property *PapiProperty) Save() error {
 	}
 
 	properties := NewPapiProperties(property.parent.service)
-	if err := res.BodyJSON(properties); err != nil {
+	if err = res.BodyJSON(properties); err != nil {
 		return err
 	}
 
