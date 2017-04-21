@@ -7,7 +7,7 @@ import (
 )
 
 type PapiVersions struct {
-	Resource
+	resource
 	service      *PapiV0Service
 	PropertyID   string `json:"propertyId"`
 	PropertyName string `json:"propertyName"`
@@ -98,7 +98,7 @@ func (versions *PapiVersions) NewVersion(createFromVersion *PapiVersion, useEtag
 }
 
 type PapiVersion struct {
-	Resource
+	resource
 	parent                *PapiVersions
 	PropertyVersion       int       `json:"propertyVersion,omitempty"`
 	UpdatedByUser         string    `json:"updatedByUser,omitempty"`

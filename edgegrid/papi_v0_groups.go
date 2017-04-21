@@ -6,7 +6,7 @@ import (
 )
 
 type PapiGroups struct {
-	Resource
+	resource
 	service     *PapiV0Service
 	AccountID   string `json:"accountId"`
 	AccountName string `json:"accountName"`
@@ -89,7 +89,7 @@ func (groups *PapiGroups) FindGroup(name string) (*PapiGroup, error) {
 }
 
 type PapiGroup struct {
-	Resource
+	resource
 	parent        *PapiGroups
 	GroupName     string   `json:"groupName"`
 	GroupID       string   `json:"groupId"`

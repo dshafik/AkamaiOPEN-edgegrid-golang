@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// APIError exposes an Akamai OPEN Edgegrid Error
 type APIError struct {
 	error
 	Type        string    `json:"type"`
@@ -27,6 +28,8 @@ func (error APIError) Error() string {
 	return strings.TrimSpace(fmt.Sprintf("API Error: %d %s %s", error.Status, error.Title, error.Detail))
 }
 
+// NewAPIError creates a new API error based on a Response,
+// or http.Response-like.
 func NewAPIError(response *Response) APIError {
 	error := APIError{}
 
@@ -43,15 +46,23 @@ func NewAPIError(response *Response) APIError {
 	return error
 }
 
-type Resource struct {
+type resource struct {
 	Complete chan bool
 }
 
-func (resource *Resource) Init() {
+// Init initializes the Complete channel, if it is necessary
+// need to create a resource specific Init(), make sure to
+// initialize the channel.
+func (resource *resource) Init() {
 	resource.Complete = make(chan bool, 1)
 }
 
-func (resource *Resource) PostUnmarshalJSON() error {
+// PostUnmarshalJSON is a default implementation of the
+// PostUnmarshalJSON hook that simply calls Init() and
+// sends true to the Complete channel. This is overridden
+// in many resources, in particular those that represent
+// collections, and have to initialize sub-resources also.
+func (resource *resource) PostUnmarshalJSON() error {
 	resource.Init()
 	resource.Complete <- true
 	return nil

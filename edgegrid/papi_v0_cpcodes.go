@@ -9,7 +9,7 @@ import (
 )
 
 type PapiCpCodes struct {
-	Resource
+	resource
 	service    *PapiV0Service
 	AccountID  string        `json:"accountId"`
 	Contract   *PapiContract `json:"-"`
@@ -92,7 +92,7 @@ func (cpcodes *PapiCpCodes) NewCpCode() *PapiCpCode {
 }
 
 type PapiCpCode struct {
-	Resource
+	resource
 	parent      *PapiCpCodes
 	CpcodeID    string    `json:"cpcodeId,omitempty"`
 	CpcodeName  string    `json:"cpcodeName"`

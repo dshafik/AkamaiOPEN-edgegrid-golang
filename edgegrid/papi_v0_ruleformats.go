@@ -1,7 +1,7 @@
 package edgegrid
 
 type PapiRuleFormats struct {
-	Resource
+	resource
 	RuleFormats struct {
 		Items []string `json:"items"`
 	} `json:"ruleFormats"`
