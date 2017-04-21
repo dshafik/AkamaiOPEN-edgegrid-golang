@@ -1,5 +1,6 @@
 language: go
 sudo: false
+go_import_path: github.com/akamai-open/AkamaiOPEN-edgegrid-golang
 go:
   - 1.6
   - 1.7
@@ -16,9 +17,7 @@ addons:
     packages:
       - glide
 install:
-  - glide install
-  - cd edgegrid/json && go install . && cd ../ && go install .
+  - glide up
 script:
   - export PATH="$PATH:$HOME/gopath/bin"
-  - cp $HOME/gopath/src/github.com/akamai-open/AkamaiOPEN-edgegrid-golang/sample_edgerc $HOME/.edgerc
-  - go test -v ./
+  - cd edgegrid && go test -v -race ./...
