@@ -1,6 +1,10 @@
 package edgegrid
 
-import "github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid/json"
+import (
+	"fmt"
+
+	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid/json"
+)
 
 type PapiEdgeHostnames struct {
 	Resource

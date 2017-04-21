@@ -1,6 +1,7 @@
 package edgegrid
 
 import (
+	"errors"
 	"fmt"
 	"time"
 )
@@ -175,7 +176,9 @@ func (version *PapiVersion) Save() error {
 	}
 
 	var location map[string]interface{}
-	res.BodyJson(&location)
+	if err := res.BodyJson(&location); err != nil {
+		return err
+	}
 
 	res, err = version.parent.service.client.Get(
 		location["versionLink"].(string),

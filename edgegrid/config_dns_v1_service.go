@@ -27,7 +27,7 @@ func (service *ConfigDnsV1Service) GetZone(hostname string) (*DnsZone, error) {
 		return nil, err
 	}
 
-	if res.IsError() == true && res.StatusCode != 404 {
+	if res.IsError() && res.StatusCode != 404 {
 		return nil, NewApiError(res)
 	} else if res.StatusCode == 404 {
 		log.Printf("[DEBUG] Zone \"%s\" not found, creating new zone.", hostname)

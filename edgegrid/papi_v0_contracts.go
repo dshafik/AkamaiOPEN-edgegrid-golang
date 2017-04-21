@@ -98,7 +98,7 @@ func (contract *PapiContract) GetContract() {
 func (contract *PapiContract) GetProducts() (*PapiProducts, error) {
 	res, err := contract.parent.service.client.Get(
 		fmt.Sprintf(
-			"/papi/v0/products?contractId=",
+			"/papi/v0/products?contractId=%s",
 			contract.ContractId,
 		),
 	)
@@ -107,7 +107,7 @@ func (contract *PapiContract) GetProducts() (*PapiProducts, error) {
 		return nil, err
 	}
 
-	if res.IsError() == true {
+	if res.IsError() {
 		return nil, NewApiError(res)
 	}
 

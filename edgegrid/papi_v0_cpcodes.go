@@ -136,7 +136,9 @@ func (cpcode *PapiCpCode) Save() error {
 	}
 
 	var location map[string]interface{}
-	res.BodyJson(&location)
+	if err := res.BodyJson(&location); err != nil {
+		return err
+	}
 
 	res, err = cpcode.parent.service.client.Get(
 		location["cpcodeLink"].(string),

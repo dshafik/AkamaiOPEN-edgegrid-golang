@@ -174,9 +174,7 @@ func (rules *PapiRules) PrintRules() error {
 func (rules *PapiRules) GetRules() []*PapiRule {
 	var flatRules []*PapiRule
 	flatRules = append(flatRules, rules.Rules)
-	for _, rules := range rules.Rules.GetChildren(0, 0) {
-		flatRules = append(flatRules, rules)
-	}
+	flatRules = append(flatRules, rules.Rules.GetChildren(0, 0)...)
 
 	return flatRules
 }
@@ -202,7 +200,9 @@ func (rules *PapiRules) Save() error {
 		return NewApiError(res)
 	}
 
-	res.BodyJson(rules)
+	if err := res.BodyJson(rules); err != nil {
+		return err
+	}
 
 	if len(rules.Errors) != 0 {
 		return fmt.Errorf("There were %d errors. See rules.Errors for details.", len(rules.Errors))
@@ -277,17 +277,17 @@ func (rules *PapiRules) FindBehavior(path string) (*PapiBehavior, error) {
 
 type PapiRule struct {
 	Resource
-	parent  *PapiRules
-	depth   int
-	Name    string `json:"name"`
-	Options struct {
-		IsSecure bool `json:"is_secure,omitempty"`
-	} `json:"options,omitempty"`
+	parent         *PapiRules
+	depth          int
+	Name           string          `json:"name"`
 	Criteria       []*PapiCriteria `json:"criteria,omitempty"`
 	Behaviors      []*PapiBehavior `json:"behaviors,omitempty"`
 	Children       []*PapiRule     `json:"children,omitempty"`
 	Comment        string          `json:"comment,omitempty"`
-	CriteriaLocked bool            `json:criteriaLocked,omitempty`
+	CriteriaLocked bool            `json:"criteriaLocked,omitempty"`
+	Options        struct {
+		IsSecure bool `json:"is_secure,omitempty"`
+	} `json:"options,omitempty"`
 }
 
 func NewPapiRule(parent *PapiRules) *PapiRule {

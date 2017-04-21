@@ -47,7 +47,7 @@ func (zone *DnsZone) Save() error {
 		return err
 	}
 
-	if res.IsError() == true {
+	if res.IsError() {
 		err := NewApiError(res)
 		return fmt.Errorf("Unable to save record (%s)", err.Error())
 	}
@@ -139,7 +139,7 @@ func (zone *DnsZone) fixupCnames(record *DnsRecord) {
 
 			newRecords := DnsRecordSet{}
 			for _, record := range records {
-				if _, ok := names[record.Name]; ok == false {
+				if _, ok := names[record.Name]; !ok {
 					newRecords = append(newRecords, record)
 				} else {
 					log.Printf(
