@@ -39,6 +39,30 @@ func (contracts *PapiContracts) PostUnmarshalJSON() error {
 	return nil
 }
 
+func (contracts *PapiContracts) GetContracts() error {
+	res, err := contracts.service.client.Get("/papi/v0/contracts")
+	if err != nil {
+		return err
+	}
+
+	if res.IsError() {
+		return NewApiError(res)
+	}
+
+	newContracts := NewPapiContracts(contracts.service)
+	if err = res.BodyJson(newContracts); err != nil {
+		return err
+	}
+
+	if err != nil {
+		return err
+	}
+
+	*contracts = *newContracts
+
+	return nil
+}
+
 type PapiContract struct {
 	Resource
 	parent           *PapiContracts

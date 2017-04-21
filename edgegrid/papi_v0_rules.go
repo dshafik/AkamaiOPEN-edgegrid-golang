@@ -390,6 +390,40 @@ func NewPapiAvailableCriteria(service *PapiV0Service) *PapiAvailableCriteria {
 	return availableCriteria
 }
 
+func (availableCriteria *PapiAvailableCriteria) GetAvailableCriteria(property *PapiProperty, contract *PapiContract, group *PapiGroup) error {
+	if contract == nil {
+		contract = NewPapiContract(NewPapiContracts(availableCriteria.service))
+		contract.ContractId = group.ContractIds[0]
+	}
+
+	res, err := availableCriteria.service.client.Get(
+		fmt.Sprintf(
+			"/papi/v0/properties/%s/versions/%d/available-behaviors?contractId=%s&groupId=%s",
+			property.PropertyId,
+			property.LatestVersion,
+			contract.ContractId,
+			group.GroupId,
+		),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if res.IsError() {
+		return NewApiError(res)
+	}
+
+	newAvailableCriteria := NewPapiAvailableCriteria(availableCriteria.service)
+	if err = res.BodyJson(newAvailableCriteria); err != nil {
+		return err
+	}
+
+	*availableCriteria = *newAvailableCriteria
+
+	return nil
+}
+
 type PapiAvailableBehaviors struct {
 	Resource
 	service    *PapiV0Service
@@ -417,6 +451,40 @@ func (availableBehaviors *PapiAvailableBehaviors) PostUnmashalJSON() error {
 	}
 
 	availableBehaviors.Complete <- true
+
+	return nil
+}
+
+func (availableBehaviors *PapiAvailableBehaviors) GetAvailableBehaviors(property *PapiProperty, contract *PapiContract, group *PapiGroup) error {
+	if contract == nil {
+		contract = NewPapiContract(NewPapiContracts(availableBehaviors.service))
+		contract.ContractId = group.ContractIds[0]
+	}
+
+	res, err := availableBehaviors.service.client.Get(
+		fmt.Sprintf(
+			"/papi/v0/properties/%s/versions/%d/available-behaviors?contractId=%s&groupId=%s",
+			property.PropertyId,
+			property.LatestVersion,
+			contract.ContractId,
+			group.GroupId,
+		),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if res.IsError() {
+		return NewApiError(res)
+	}
+
+	newAvailableBehaviors := NewPapiAvailableBehaviors(availableBehaviors.service)
+	if err = res.BodyJson(newAvailableBehaviors); err != nil {
+		return err
+	}
+
+	*availableBehaviors = *newAvailableBehaviors
 
 	return nil
 }
