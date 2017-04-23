@@ -77,18 +77,18 @@ func (papi *PapiV0Service) GetVersions(property *PapiProperty, contract *PapiCon
 	return versions, nil
 }
 
-func (papi *PapiV0Service) GetAvailableBehaviors(property *PapiProperty, contract *PapiContract, group *PapiGroup) (*PapiAvailableBehaviors, error) {
+func (papi *PapiV0Service) GetAvailableBehaviors(property *PapiProperty) (*PapiAvailableBehaviors, error) {
 	availableBehaviors := NewPapiAvailableBehaviors(papi)
-	if err := availableBehaviors.GetAvailableBehaviors(property, contract, group); err != nil {
+	if err := availableBehaviors.GetAvailableBehaviors(property); err != nil {
 		return nil, err
 	}
 
 	return availableBehaviors, nil
 }
 
-func (papi *PapiV0Service) GetAvailableCriteria(property *PapiProperty, contract *PapiContract, group *PapiGroup) (*PapiAvailableCriteria, error) {
+func (papi *PapiV0Service) GetAvailableCriteria(property *PapiProperty) (*PapiAvailableCriteria, error) {
 	availableCriteria := NewPapiAvailableCriteria(papi)
-	if err := availableCriteria.GetAvailableCriteria(property, contract, group); err != nil {
+	if err := availableCriteria.GetAvailableCriteria(property); err != nil {
 		return nil, err
 	}
 

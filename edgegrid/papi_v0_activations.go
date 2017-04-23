@@ -23,6 +23,37 @@ func NewPapiActivations(service *PapiV0Service) *PapiActivations {
 	return activations
 }
 
+// GetActivations retrieves activation data for a given property
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#listactivations
+// Endpoint: GET /papi/v0/properties/{propertyId}/activations/{?contractId,groupId}
+func (activations *PapiActivations) GetActivations(property *PapiProperty) error {
+	res, err := activations.service.client.Get(
+		fmt.Sprintf("/papi/v0/properties/%s/activations?contractId=%s&groupId=%s",
+			property.PropertyID,
+			property.Contract.ContractID,
+			property.Group.GroupID,
+		),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if res.IsError() {
+		return NewAPIError(res)
+	}
+
+	newActivations := NewPapiActivations(property.parent.service)
+	if err = res.BodyJSON(activations); err != nil {
+		return err
+	}
+
+	*activations = *newActivations
+
+	return nil
+}
+
 func (activations *PapiActivations) GetLatestProductionActivation(status PapiStatusValue) (*PapiActivation, error) {
 	return activations.GetLatestActivation(papiNetworkProduction, status)
 }

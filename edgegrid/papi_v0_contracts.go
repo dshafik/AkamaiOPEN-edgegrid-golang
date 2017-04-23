@@ -39,6 +39,10 @@ func (contracts *PapiContracts) PostUnmarshalJSON() error {
 	return nil
 }
 
+// GetContracts populates PapiContracts with contract data
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#listcontracts
+// Endpoint: GET /papi/v0/contracts
 func (contracts *PapiContracts) GetContracts() error {
 	res, err := contracts.service.client.Get("/papi/v0/contracts")
 	if err != nil {

@@ -69,6 +69,7 @@ func (cpcodes *PapiCpCodes) PostUnmarshalJSON() error {
 // GetCpCodes populates a *PapiCpCodes with it's related CP Codes
 //
 // API Docs: https://developer.akamai.com/api/luna/papi/resources.html#listcpcodes
+// Endpoint: GET /papi/v0/cpcodes/{?contractId,groupId}
 func (cpcodes *PapiCpCodes) GetCpCodes() error {
 	if cpcodes.Contract == nil {
 		cpcodes.Contract = NewPapiContract(NewPapiContracts(cpcodes.service))
@@ -127,6 +128,7 @@ func NewPapiCpCode(parent *PapiCpCodes) *PapiCpCode {
 // GetCpCode populates the *PapiCpCode with it's data
 //
 // API Docs: https://developer.akamai.com/api/luna/papi/resources.html#getacpcode
+// Endpoint: GET /papi/v0/cpcodes/{cpcodeId}{?contractId,groupId}
 func (cpcode *PapiCpCode) GetCpCode() error {
 	res, err := cpcode.parent.service.client.Get(
 		fmt.Sprintf(
@@ -171,6 +173,7 @@ func (cpcode *PapiCpCode) ID() int {
 // trying to do so will result in an error.
 //
 // API Docs: https://developer.akamai.com/api/luna/papi/resources.html#createanewcpcode
+// Endpoint: POST /papi/v0/cpcodes/{?contractId,groupId}
 func (cpcode *PapiCpCode) Save() error {
 	res, err := cpcode.parent.service.client.PostJSON(
 		fmt.Sprintf(

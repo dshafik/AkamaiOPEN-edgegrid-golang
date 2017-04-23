@@ -41,6 +41,10 @@ func (edgeHostnames *PapiEdgeHostnames) PostUnmarshalJSON() error {
 	return nil
 }
 
+// GetEdgeHostnames will populate PapiEdgeHostnames with Edge Hostname data
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#listedgehostnames
+// Endpoint: GET /papi/v0/edgehostnames/{?contractId,groupId,options}
 func (edgeHostnames *PapiEdgeHostnames) GetEdgeHostnames(contract *PapiContract, group *PapiGroup, options string) error {
 	if contract == nil {
 		contract = NewPapiContract(NewPapiContracts(edgeHostnames.service))

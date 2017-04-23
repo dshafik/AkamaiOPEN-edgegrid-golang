@@ -37,6 +37,10 @@ func (products *PapiProducts) PostUnmarshalJSON() error {
 	return nil
 }
 
+// GetProducts populates PapiProducts with product data
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#listproducts
+// Endpoint: GET /papi/v0/products/{?contractId}
 func (products *PapiProducts) GetProducts(contract *PapiContract) error {
 	res, err := products.service.client.Get(
 		fmt.Sprintf(

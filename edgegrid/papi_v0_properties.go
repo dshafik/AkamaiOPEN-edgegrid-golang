@@ -36,6 +36,10 @@ func (properties *PapiProperties) PostUnmarshalJSON() error {
 	return nil
 }
 
+// GetProperties populates PapiProperties with property data
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#listproperties
+// Endpoint: GET /papi/v0/properties/{?contractId,groupId}
 func (properties *PapiProperties) GetProperties(contract *PapiContract, group *PapiGroup) error {
 	if contract == nil {
 		contract = NewPapiContract(NewPapiContracts(properties.service))
@@ -146,64 +150,38 @@ func (property *PapiProperty) PreMarshalJSON() error {
 }
 
 func (property *PapiProperty) GetActivations() (*PapiActivations, error) {
-	res, err := property.parent.service.client.Get(
-		fmt.Sprintf("/papi/v0/properties/%s/activations?contractId=%s&groupId=%s",
-			property.PropertyID,
-			property.Contract.ContractID,
-			property.Group.GroupID,
-		),
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
 	activations := NewPapiActivations(property.parent.service)
-	if err = res.BodyJSON(activations); err != nil {
+
+	if err := activations.GetActivations(property); err != nil {
 		return nil, err
 	}
 
 	return activations, nil
 }
 
+// GetAvailableBehaviors retrieves available behaviors for a given property
+//
+// See: PapiAvailableBehaviors.GetAvailableBehaviors
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#listavailablebehaviors
+// Endpoint: GET /papi/v0/properties/{propertyId}/versions/{propertyVersion}/available-behaviors{?contractId,groupId}
 func (property *PapiProperty) GetAvailableBehaviors() (*PapiAvailableBehaviors, error) {
-	// /papi/v0/properties/{propertyId}/versions/{propertyVersion}/available-behaviors{?contractId,groupId}
-	res, err := property.parent.service.client.Get(fmt.Sprintf(
-		"/papi/v0/properties/%s/versions/%d/available-behaviors?contractId=%s&groupId=%s",
-		property.PropertyID,
-		property.LatestVersion,
-		property.Contract.ContractID,
-		property.Group.GroupID,
-	))
-
-	if err != nil {
-		return nil, err
-	}
-
 	behaviors := NewPapiAvailableBehaviors(property.parent.service)
-	if err = res.BodyJSON(behaviors); err != nil {
+	if err := behaviors.GetAvailableBehaviors(property); err != nil {
 		return nil, err
 	}
 
 	return behaviors, nil
 }
 
+// GetRules retrieves rules for a property
+//
+// See: PapiRules.GetRules
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#getaruletree
+// Endpoint: GET /papi/v0/properties/{propertyId}/versions/{propertyVersion}/rules/{?contractId,groupId}
 func (property *PapiProperty) GetRules() (*PapiRules, error) {
-	// /papi/v0/properties/{propertyId}/versions/{propertyVersion}/rules/{?contractId,groupId}
-	res, err := property.parent.service.client.Get(fmt.Sprintf(
-		"/papi/v0/properties/%s/versions/%d/rules?contractId=%s&groupId=%s",
-		property.PropertyID,
-		property.LatestVersion,
-		property.Contract.ContractID,
-		property.Group.GroupID,
-	))
-
-	if err != nil {
-		return nil, err
-	}
-
 	rules := NewPapiRules(property.parent.service)
-	if err = res.BodyJSON(rules); err != nil {
+
+	if err := rules.GetRules(property); err != nil {
 		return nil, err
 	}
 
@@ -238,6 +216,12 @@ func (property *PapiProperty) GetVersions() (*PapiVersions, error) {
 
 }
 
+// GetHostnames retrieves hostnames assigned to a given property
+//
+// If no version is given, the latest version is used
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#listapropertyshostnames
+// Endpoint: GET /papi/v0/properties/{propertyId}/versions/{propertyVersion}/hostnames/{?contractId,groupId}
 func (property *PapiProperty) GetHostnames(version int) (*PapiHostnames, error) {
 	if version == 0 {
 		version = property.LatestVersion
@@ -290,6 +274,10 @@ func (property *PapiProperty) PostUnmarshalJSON() error {
 	return nil
 }
 
+// Save will create a property, optionally cloned from another property
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#createorcloneaproperty
+// Endpoint: POST /papi/v0/properties/{?contractId,groupId}
 func (property *PapiProperty) Save() error {
 	res, err := property.parent.service.client.PostJSON(
 		fmt.Sprintf(
@@ -339,6 +327,10 @@ func (property *PapiProperty) Save() error {
 	return nil
 }
 
+// Delete a property
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#removeaproperty
+// Endpoint: DELETE /papi/v0/properties/{propertyId}{?contractId,groupId}
 func (property *PapiProperty) Delete() error {
 	// /papi/v0/properties/{propertyId}{?contractId,groupId}
 	res, err := property.parent.service.client.Delete(

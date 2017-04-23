@@ -171,7 +171,39 @@ func (rules *PapiRules) PrintRules() error {
 	return nil
 }
 
-func (rules *PapiRules) GetRules() []*PapiRule {
+// GetRules populates PapiRules with rule data for a given property
+//
+// See: PapiProperty.GetRules
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#getaruletree
+// Endpoint: GET /papi/v0/properties/{propertyId}/versions/{propertyVersion}/rules/{?contractId,groupId}
+func (rules *PapiRules) GetRules(property *PapiProperty) error {
+	res, err := rules.service.client.Get(fmt.Sprintf(
+		"/papi/v0/properties/%s/versions/%d/rules?contractId=%s&groupId=%s",
+		property.PropertyID,
+		property.LatestVersion,
+		property.Contract.ContractID,
+		property.Group.GroupID,
+	))
+
+	if err != nil {
+		return err
+	}
+
+	if res.IsError() {
+		return NewAPIError(res)
+	}
+
+	newRules := NewPapiRules(property.parent.service)
+	if err = res.BodyJSON(newRules); err != nil {
+		return err
+	}
+
+	*rules = *newRules
+
+	return nil
+}
+
+func (rules *PapiRules) GetAllRules() []*PapiRule {
 	var flatRules []*PapiRule
 	flatRules = append(flatRules, rules.Rules)
 	flatRules = append(flatRules, rules.Rules.GetChildren(0, 0)...)
@@ -179,6 +211,10 @@ func (rules *PapiRules) GetRules() []*PapiRule {
 	return flatRules
 }
 
+// Save creates/updates a rule tree for a property
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#updatearuletree
+// Endpoint: PUT /papi/v0/properties/{propertyId}/versions/{propertyVersion}/rules/{?contractId,groupId}
 func (rules *PapiRules) Save() error {
 	// /papi/v0/properties/{propertyId}/versions/{propertyVersion}/rules/{?contractId,groupId}
 	res, err := rules.service.client.PutJSON(
@@ -388,19 +424,18 @@ func NewPapiAvailableCriteria(service *PapiV0Service) *PapiAvailableCriteria {
 	return availableCriteria
 }
 
-func (availableCriteria *PapiAvailableCriteria) GetAvailableCriteria(property *PapiProperty, contract *PapiContract, group *PapiGroup) error {
-	if contract == nil {
-		contract = NewPapiContract(NewPapiContracts(availableCriteria.service))
-		contract.ContractID = group.ContractIDs[0]
-	}
-
+// GetAvailableCriteria retrieves criteria available for a given property
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#listavailablecriteria
+// Endpoint: GET /papi/v0/properties/{propertyId}/versions/{propertyVersion}/available-criteria{?contractId,groupId}
+func (availableCriteria *PapiAvailableCriteria) GetAvailableCriteria(property *PapiProperty) error {
 	res, err := availableCriteria.service.client.Get(
 		fmt.Sprintf(
-			"/papi/v0/properties/%s/versions/%d/available-behaviors?contractId=%s&groupId=%s",
+			"/papi/v0/properties/%s/versions/%d/available-criteria?contractId=%s&groupId=%s",
 			property.PropertyID,
 			property.LatestVersion,
-			contract.ContractID,
-			group.GroupID,
+			property.Contract.ContractID,
+			property.Group.GroupID,
 		),
 	)
 
@@ -453,19 +488,19 @@ func (availableBehaviors *PapiAvailableBehaviors) PostUnmashalJSON() error {
 	return nil
 }
 
-func (availableBehaviors *PapiAvailableBehaviors) GetAvailableBehaviors(property *PapiProperty, contract *PapiContract, group *PapiGroup) error {
-	if contract == nil {
-		contract = NewPapiContract(NewPapiContracts(availableBehaviors.service))
-		contract.ContractID = group.ContractIDs[0]
-	}
-
+// GetAvailableBehaviors retrieves available behaviors for a given property
+//
+// See: PapiProperty.GetAvailableBehaviors
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#listavailablebehaviors
+// Endpoint: GET /papi/v0/properties/{propertyId}/versions/{propertyVersion}/available-behaviors{?contractId,groupId}
+func (availableBehaviors *PapiAvailableBehaviors) GetAvailableBehaviors(property *PapiProperty) error {
 	res, err := availableBehaviors.service.client.Get(
 		fmt.Sprintf(
 			"/papi/v0/properties/%s/versions/%d/available-behaviors?contractId=%s&groupId=%s",
 			property.PropertyID,
 			property.LatestVersion,
-			contract.ContractID,
-			group.GroupID,
+			property.Contract.ContractID,
+			property.Group.GroupID,
 		),
 	)
 

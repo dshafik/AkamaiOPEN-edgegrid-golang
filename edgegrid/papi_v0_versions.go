@@ -38,6 +38,10 @@ func (versions *PapiVersions) PostUnmarshalJSON() error {
 	return nil
 }
 
+// GetVersions populates PapiVersions with property version data
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#listversions
+// Endpoint: GET /papi/v0/properties/{propertyId}/versions/{?contractId,groupId}
 func (versions *PapiVersions) GetVersions(property *PapiProperty, contract *PapiContract, group *PapiGroup) error {
 	if property == nil {
 		return errors.New("You must provide a property")
@@ -74,7 +78,12 @@ func (versions *PapiVersions) GetVersions(property *PapiProperty, contract *Papi
 	return nil
 }
 
+// GetLatatestVersion retrieves the latest PapiVersion for a property
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#getthelatestversion
+// Endpoint: GET /papi/v0/properties/{propertyId}/versions/latest{?contractId,groupId,activatedOn}
 // Todo: Mimic behavior of and fallback to /papi/v0/properties/{propertyId}/versions/latest{?contractId,groupId,activatedOn}
+// Todo: Move to PapiProperty.GetLatestVersion
 func (versions *PapiVersions) GetLatestVersion() *PapiVersion {
 	if len(versions.Versions.Items) > 0 {
 		return versions.Versions.Items[len(versions.Versions.Items)-1]
@@ -82,6 +91,7 @@ func (versions *PapiVersions) GetLatestVersion() *PapiVersion {
 	return nil
 }
 
+// Todo: refactor to wrap PapiVersion.NewVersion() for createFromVersion behavior
 func (versions *PapiVersions) NewVersion(createFromVersion *PapiVersion, useEtagStrict bool) *PapiVersion {
 	if createFromVersion == nil {
 		createFromVersion = versions.GetLatestVersion()
@@ -153,9 +163,13 @@ func (version *PapiVersion) HasBeenActivated() (bool, error) {
 	return false, nil
 }
 
+// Save creates a new version
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#createanewversion
+// Endpoint: POST /papi/v0/properties/{propertyId}/versions/{?contractId,groupId}
 func (version *PapiVersion) Save() error {
 	if version.PropertyVersion != 0 {
-		return fmt.Errorf("Version (%d) already exists!", version.PropertyVersion)
+		return fmt.Errorf("version (%d) already exists", version.PropertyVersion)
 	}
 
 	res, err := version.parent.service.client.PostJSON(

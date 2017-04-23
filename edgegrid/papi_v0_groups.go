@@ -36,6 +36,10 @@ func (groups *PapiGroups) PostUnmarshalJSON() error {
 	return nil
 }
 
+// GetGroups populates PapiGroups with group data
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#listgroups
+// Endpoint: GET /papi/v0/groups/
 func (groups *PapiGroups) GetGroups() error {
 	res, err := groups.service.client.Get("/papi/v0/groups")
 	if err != nil {
