@@ -27,9 +27,12 @@ type PapiCpCodes struct {
 }
 
 // NewPapiCpCodes creates a new *PapiCpCodes
-func NewPapiCpCodes(service *PapiV0Service) *PapiCpCodes {
-	cpcodes := &PapiCpCodes{service: service}
-	return cpcodes
+func NewPapiCpCodes(service *PapiV0Service, contract *PapiContract, group *PapiGroup) *PapiCpCodes {
+	return &PapiCpCodes{
+		service:  service,
+		Contract: contract,
+		Group:    group,
+	}
 }
 
 // PostUnmarshalJSON is called after UnmarshalJSON to setup the
@@ -90,7 +93,7 @@ func (cpcodes *PapiCpCodes) GetCpCodes() error {
 		return NewAPIError(res)
 	}
 
-	newCpcodes := NewPapiCpCodes(cpcodes.service)
+	newCpcodes := NewPapiCpCodes(cpcodes.service, nil, nil)
 	if err = res.BodyJSON(newCpcodes); err != nil {
 		return err
 	}
@@ -209,7 +212,11 @@ func (cpcode *PapiCpCode) Save() error {
 		return NewAPIError(res)
 	}
 
-	cpcodes := NewPapiCpCodes(cpcode.parent.service)
+	cpcodes := NewPapiCpCodes(cpcode.parent.service, nil, nil)
+	if err != nil {
+		return err
+	}
+
 	if err = res.BodyJSON(cpcodes); err != nil {
 		return err
 	}

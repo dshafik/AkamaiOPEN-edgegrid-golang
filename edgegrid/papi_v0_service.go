@@ -49,9 +49,7 @@ func (papi *PapiV0Service) GetEdgeHostnames(contract *PapiContract, group *PapiG
 //
 // API Docs: https://developer.akamai.com/api/luna/papi/resources.html#listcpcodes
 func (papi *PapiV0Service) GetCpCodes(contract *PapiContract, group *PapiGroup) (*PapiCpCodes, error) {
-	cpcodes := NewPapiCpCodes(papi)
-	cpcodes.Contract = contract
-	cpcodes.Group = group
+	cpcodes := NewPapiCpCodes(papi, contract, group)
 	if err := cpcodes.GetCpCodes(); err != nil {
 		return nil, err
 	}
