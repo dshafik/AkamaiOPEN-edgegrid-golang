@@ -100,6 +100,8 @@ func (versions *PapiVersions) NewVersion(createFromVersion *PapiVersion, useEtag
 	version := NewPapiVersion(versions)
 	version.CreateFromVersion = createFromVersion.PropertyVersion
 
+	versions.Versions.Items = append(versions.Versions.Items, version)
+
 	if useEtagStrict {
 		version.CreateFromVersionEtag = createFromVersion.Etag
 	}

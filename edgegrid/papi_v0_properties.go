@@ -106,6 +106,9 @@ func (properties *PapiProperties) FindProperty(name string) (*PapiProperty, erro
 
 func (properties *PapiProperties) NewProperty(contract *PapiContract, group *PapiGroup) *PapiProperty {
 	property := NewPapiProperty(properties)
+
+	properties.Properties.Items = append(properties.Properties.Items, property)
+
 	property.Contract = contract
 	property.Group = group
 	go property.Contract.GetContract()

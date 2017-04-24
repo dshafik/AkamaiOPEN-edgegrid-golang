@@ -105,7 +105,9 @@ func (cpcodes *PapiCpCodes) GetCpCodes() error {
 
 // NewCpCode creates a new *PapiCpCode associated with this *PapiCpCodes as it's parent.
 func (cpcodes *PapiCpCodes) NewCpCode() *PapiCpCode {
-	return NewPapiCpCode(cpcodes)
+	cpcode := NewPapiCpCode(cpcodes)
+	cpcodes.CpCodes.Items = append(cpcodes.CpCodes.Items, cpcode)
+	return cpcode
 }
 
 // PapiCpCode represents a single CP Code
