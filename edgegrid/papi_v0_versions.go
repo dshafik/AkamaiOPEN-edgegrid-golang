@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// PapiVersions contains a collection of Property Versions
 type PapiVersions struct {
 	resource
 	service      *PapiV0Service
@@ -20,6 +21,7 @@ type PapiVersions struct {
 	RuleFormat string `json:"ruleFormat,omitempty"`
 }
 
+// NewPapiVersions creates a new PapiVersions
 func NewPapiVersions(service *PapiV0Service) *PapiVersions {
 	version := &PapiVersions{service: service}
 	version.Init()
@@ -27,15 +29,32 @@ func NewPapiVersions(service *PapiV0Service) *PapiVersions {
 	return version
 }
 
+// PostUnmarshalJSON is called after JSON unmarshaling into PapiEdgeHostnames
+//
+// See: edgegrid/json.Unmarshal()
 func (versions *PapiVersions) PostUnmarshalJSON() error {
 	versions.Init()
 
-	for key, _ := range versions.Versions.Items {
+	for key := range versions.Versions.Items {
 		versions.Versions.Items[key].parent = versions
 	}
 	versions.Complete <- true
 
 	return nil
+}
+
+// AddVersion adds or replaces a version within the collection
+func (versions *PapiVersions) AddVersion(version *PapiVersion) {
+	if version.PropertyVersion != 0 {
+		for key, v := range versions.Versions.Items {
+			if v.PropertyVersion == version.PropertyVersion {
+				versions.Versions.Items[key] = version
+				return
+			}
+		}
+	}
+
+	versions.Versions.Items = append(versions.Versions.Items, version)
 }
 
 // GetVersions retrieves all versions for a a given property
@@ -71,23 +90,74 @@ func (versions *PapiVersions) GetVersions(property *PapiProperty) error {
 	return nil
 }
 
-// GetLatatestVersion retrieves the latest PapiVersion for a property
+// GetLatestVersion retrieves the latest PapiVersion for a property
 //
+// See: PapiProperty.GetLatestVersion()
 // API Docs: https://developer.akamai.com/api/luna/papi/resources.html#getthelatestversion
 // Endpoint: GET /papi/v0/properties/{propertyId}/versions/latest{?contractId,groupId,activatedOn}
-// Todo: Mimic behavior of and fallback to /papi/v0/properties/{propertyId}/versions/latest{?contractId,groupId,activatedOn}
-// Todo: Move to PapiProperty.GetLatestVersion
-func (versions *PapiVersions) GetLatestVersion() *PapiVersion {
+func (versions *PapiVersions) GetLatestVersion(activatedOn PapiNetworkValue) (*PapiVersion, error) {
+	latest := NewPapiVersion(versions)
+
 	if len(versions.Versions.Items) > 0 {
-		return versions.Versions.Items[len(versions.Versions.Items)-1]
+		for _, version := range versions.Versions.Items {
+			if version.PropertyVersion > latest.PropertyVersion {
+				if activatedOn == "" {
+					latest = version
+					continue
+				}
+
+				if activatedOn == PapiNetworkProduction && version.ProductionStatus == PapiStatusActive {
+					latest = version
+					continue
+				}
+
+				if activatedOn == PapiNetworkStaging && version.StagingStatus == PapiStatusActive {
+					latest = version
+					continue
+				}
+			}
+		}
+
+		return latest, nil
 	}
-	return nil
+
+	if activatedOn != "" {
+		activatedOn = "&activatedOn=" + activatedOn
+	}
+
+	res, err := versions.service.client.Get(
+		fmt.Sprintf(
+			"/papi/v0/properties/%s/versions/latest?contractId=%s&groupId=%s%s",
+			versions.PropertyID,
+			versions.ContractID,
+			versions.GroupID,
+			activatedOn,
+		),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if res.IsError() {
+		return nil, NewAPIError(res)
+	}
+
+	if err := res.BodyJSON(latest); err != nil {
+		return nil, err
+	}
+
+	return latest, nil
 }
 
-// Todo: refactor to wrap PapiVersion.NewVersion() for createFromVersion behavior
+// NewVersion creates a new version associated with the PapiVersions collection
 func (versions *PapiVersions) NewVersion(createFromVersion *PapiVersion, useEtagStrict bool) *PapiVersion {
 	if createFromVersion == nil {
-		createFromVersion = versions.GetLatestVersion()
+		var err error
+		createFromVersion, err = versions.GetLatestVersion("")
+		if err != nil {
+			return nil
+		}
 	}
 
 	version := NewPapiVersion(versions)
@@ -102,22 +172,24 @@ func (versions *PapiVersions) NewVersion(createFromVersion *PapiVersion, useEtag
 	return version
 }
 
+// PapiVersion represents a Property Version
 type PapiVersion struct {
 	resource
 	parent                *PapiVersions
-	PropertyVersion       int       `json:"propertyVersion,omitempty"`
-	UpdatedByUser         string    `json:"updatedByUser,omitempty"`
-	UpdatedDate           time.Time `json:"updatedDate,omitempty"`
-	ProductionStatus      string    `json:"productionStatus,omitempty"`
-	StagingStatus         string    `json:"stagingStatus,omitempty"`
-	Etag                  string    `json:"etag,omitempty"`
-	ProductID             string    `json:"productId,omitempty"`
-	Note                  string    `json:"note,omitempty"`
-	CreateFromVersion     int       `json:"createFromVersion,omitempty"`
-	CreateFromVersionEtag string    `json:"createFromVersionEtag,omitempty"`
-	Complete              chan bool `json:"-"`
+	PropertyVersion       int             `json:"propertyVersion,omitempty"`
+	UpdatedByUser         string          `json:"updatedByUser,omitempty"`
+	UpdatedDate           time.Time       `json:"updatedDate,omitempty"`
+	ProductionStatus      PapiStatusValue `json:"productionStatus,omitempty"`
+	StagingStatus         PapiStatusValue `json:"stagingStatus,omitempty"`
+	Etag                  string          `json:"etag,omitempty"`
+	ProductID             string          `json:"productId,omitempty"`
+	Note                  string          `json:"note,omitempty"`
+	CreateFromVersion     int             `json:"createFromVersion,omitempty"`
+	CreateFromVersionEtag string          `json:"createFromVersionEtag,omitempty"`
+	Complete              chan bool       `json:"-"`
 }
 
+// NewPapiVersion creates a new PapiVersion
 func NewPapiVersion(parent *PapiVersions) *PapiVersion {
 	version := &PapiVersion{parent: parent}
 	version.Init()
@@ -125,24 +197,54 @@ func NewPapiVersion(parent *PapiVersions) *PapiVersion {
 	return version
 }
 
-func (version *PapiVersion) HasBeenActivated() (bool, error) {
+// GetVersion populates a PapiVersion
+//
+// Api Docs: https://developer.akamai.com/api/luna/papi/resources.html#getaversion
+// Endpoint: /papi/v0/properties/{propertyId}/versions/{propertyVersion}{?contractId,groupId}
+func (version *PapiVersion) GetVersion(property *PapiProperty, getVersion int) error {
+	if getVersion == 0 {
+		getVersion = property.LatestVersion
+	}
+
+	res, err := version.parent.service.client.Get(
+		fmt.Sprintf(
+			"/papi/v0/properties/%s/versions/%d?contractId=%s&groupId=%s",
+			property.PropertyID,
+			getVersion,
+			property.Contract.ContractID,
+			property.Group.GroupID,
+		),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if res.IsError() {
+		return NewAPIError(res)
+	}
+
+	newVersion := NewPapiVersion(version.parent)
+	if err := res.BodyJSON(newVersion); err != nil {
+		return err
+	}
+
+	*version = *newVersion
+
+	return nil
+}
+
+// HasBeenActivated determines if a given version has been activated, optionally on a specific network
+func (version *PapiVersion) HasBeenActivated(activatedOn PapiNetworkValue) (bool, error) {
 	properties := NewPapiProperties(version.parent.service)
 	property := NewPapiProperty(properties)
 	property.PropertyID = version.parent.PropertyID
 
 	property.Group = NewPapiGroup(NewPapiGroups(version.parent.service))
 	property.Group.GroupID = version.parent.GroupID
-	go property.Group.GetGroup()
 
 	property.Contract = NewPapiContract(NewPapiContracts(version.parent.service))
 	property.Contract.ContractID = version.parent.ContractID
-	go property.Contract.GetContract()
-
-	go (func(property *PapiProperty) {
-		contractCompleted := <-property.Contract.Complete
-		groupCompleted := <-property.Group.Complete
-		property.Complete <- (contractCompleted && groupCompleted)
-	})(property)
 
 	activations, err := property.GetActivations()
 	if err != nil {
@@ -150,7 +252,7 @@ func (version *PapiVersion) HasBeenActivated() (bool, error) {
 	}
 
 	for _, activation := range activations.Activations.Items {
-		if activation.PropertyVersion == version.PropertyVersion {
+		if activation.PropertyVersion == version.PropertyVersion && (activatedOn == "" || activation.Network == activatedOn) {
 			return true, nil
 		}
 	}

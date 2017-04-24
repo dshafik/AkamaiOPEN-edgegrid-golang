@@ -56,20 +56,20 @@ func (activations *PapiActivations) GetActivations(property *PapiProperty) error
 }
 
 func (activations *PapiActivations) GetLatestProductionActivation(status PapiStatusValue) (*PapiActivation, error) {
-	return activations.GetLatestActivation(papiNetworkProduction, status)
+	return activations.GetLatestActivation(PapiNetworkProduction, status)
 }
 
 func (activations *PapiActivations) GetLatestStagingActivation(status PapiStatusValue) (*PapiActivation, error) {
-	return activations.GetLatestActivation(papiNetworkStaging, status)
+	return activations.GetLatestActivation(PapiNetworkStaging, status)
 }
 
 func (activations *PapiActivations) GetLatestActivation(network PapiNetworkValue, status PapiStatusValue) (*PapiActivation, error) {
 	if network == "" {
-		network = papiNetworkProduction
+		network = PapiNetworkProduction
 	}
 
 	if status == "" {
-		status = papiStatusActive
+		status = PapiStatusActive
 	}
 
 	var latest *PapiActivation
@@ -117,19 +117,19 @@ type PapiNetworkValue string
 type PapiStatusValue string
 
 const (
-	papiActivationTypeActivate    PapiActivationValue = "ACTIVATE"
-	papiActivationTypeDeactivate  PapiActivationValue = "DEACTIVATE"
-	papiNetworkProduction         PapiNetworkValue    = "PRODUCTION"
-	papiNetworkStaging            PapiNetworkValue    = "STAGING"
-	papiStatusActive              PapiStatusValue     = "ACTIVE"
-	papiStatusInactive            PapiStatusValue     = "INACTIVE"
-	papiStatusPending             PapiStatusValue     = "PENDING"
-	papiStatusZone1               PapiStatusValue     = "ZONE_1"
-	papiStatusZone2               PapiStatusValue     = "ZONE_2"
-	papiStatusZone3               PapiStatusValue     = "ZONE_3"
-	papiStatusAborted             PapiStatusValue     = "ABORTED"
-	papiStatusFailed              PapiStatusValue     = "FAILED"
-	papiStatusDeactivated         PapiStatusValue     = "DEACTIVATED"
-	papiStatusPendingDeactivation PapiStatusValue     = "PENDING_DEACTIVATION"
-	papiStatusNew                 PapiStatusValue     = "NEW"
+	PapiActivationTypeActivate    PapiActivationValue = "ACTIVATE"
+	PapiActivationTypeDeactivate  PapiActivationValue = "DEACTIVATE"
+	PapiNetworkProduction         PapiNetworkValue    = "PRODUCTION"
+	PapiNetworkStaging            PapiNetworkValue    = "STAGING"
+	PapiStatusActive              PapiStatusValue     = "ACTIVE"
+	PapiStatusInactive            PapiStatusValue     = "INACTIVE"
+	PapiStatusPending             PapiStatusValue     = "PENDING"
+	PapiStatusZone1               PapiStatusValue     = "ZONE_1"
+	PapiStatusZone2               PapiStatusValue     = "ZONE_2"
+	PapiStatusZone3               PapiStatusValue     = "ZONE_3"
+	PapiStatusAborted             PapiStatusValue     = "ABORTED"
+	PapiStatusFailed              PapiStatusValue     = "FAILED"
+	PapiStatusDeactivated         PapiStatusValue     = "DEACTIVATED"
+	PapiStatusPendingDeactivation PapiStatusValue     = "PENDING_DEACTIVATION"
+	PapiStatusNew                 PapiStatusValue     = "NEW"
 )

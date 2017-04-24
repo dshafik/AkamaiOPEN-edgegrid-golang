@@ -257,6 +257,20 @@ func (property *PapiProperty) GetVersions() (*PapiVersions, error) {
 	return versions, nil
 }
 
+// GetLatestVersion gets the latest active version, optionally of a given network
+//
+// See: PapiVersions.GetLatestVersion()
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#getthelatestversion
+// Endpoint: GET /papi/v0/properties/{propertyId}/versions/latest{?contractId,groupId,activatedOn}
+func (property *PapiProperty) GetLatestVersion(activatedOn PapiNetworkValue) (*PapiVersion, error) {
+	versions, err := property.GetVersions()
+	if err != nil {
+		return nil, err
+	}
+
+	return versions.GetLatestVersion(activatedOn)
+}
+
 // GetHostnames retrieves hostnames assigned to a given property
 //
 // If no version is given, the latest version is used
