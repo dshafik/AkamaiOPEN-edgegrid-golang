@@ -25,6 +25,7 @@ func NewPapiActivations(service *PapiV0Service) *PapiActivations {
 
 // GetActivations retrieves activation data for a given property
 //
+// See: PapiProperty.GetActivations()
 // API Docs: https://developer.akamai.com/api/luna/papi/resources.html#listactivations
 // Endpoint: GET /papi/v0/properties/{propertyId}/activations/{?contractId,groupId}
 func (activations *PapiActivations) GetActivations(property *PapiProperty) error {

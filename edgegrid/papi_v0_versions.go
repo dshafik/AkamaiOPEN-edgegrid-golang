@@ -38,29 +38,22 @@ func (versions *PapiVersions) PostUnmarshalJSON() error {
 	return nil
 }
 
-// GetVersions populates PapiVersions with property version data
+// GetVersions retrieves all versions for a a given property
 //
+// See: PapiProperty.GetVersions()
 // API Docs: https://developer.akamai.com/api/luna/papi/resources.html#listversions
 // Endpoint: GET /papi/v0/properties/{propertyId}/versions/{?contractId,groupId}
-func (versions *PapiVersions) GetVersions(property *PapiProperty, contract *PapiContract, group *PapiGroup) error {
+func (versions *PapiVersions) GetVersions(property *PapiProperty) error {
 	if property == nil {
 		return errors.New("You must provide a property")
-	}
-
-	if contract == nil {
-		contract = property.Contract
-	}
-
-	if group == nil {
-		group = property.Group
 	}
 
 	res, err := versions.service.client.Get(
 		fmt.Sprintf(
 			"/papi/v0/properties/%s/versions?contractId=%s&groupId=%s",
 			property.PropertyID,
-			contract.ContractID,
-			group.GroupID,
+			property.Contract.ContractID,
+			property.Group.GroupID,
 		),
 	)
 

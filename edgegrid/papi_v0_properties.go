@@ -5,6 +5,7 @@ import (
 	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid/json"
 )
 
+// PapiProperties is a collection of PAPI Property resources
 type PapiProperties struct {
 	resource
 	service    *PapiV0Service
@@ -13,6 +14,7 @@ type PapiProperties struct {
 	} `json:"properties"`
 }
 
+// NewPapiProperties creates a new PapiProperties
 func NewPapiProperties(service *PapiV0Service) *PapiProperties {
 	properties := &PapiProperties{service: service}
 	properties.Init()
@@ -20,6 +22,9 @@ func NewPapiProperties(service *PapiV0Service) *PapiProperties {
 	return properties
 }
 
+// PostUnmarshalJSON is called after JSON unmarshaling into PapiEdgeHostnames
+//
+// See: edgegrid/json.Unmarshal()
 func (properties *PapiProperties) PostUnmarshalJSON() error {
 	properties.Init()
 
@@ -72,8 +77,10 @@ func (properties *PapiProperties) GetProperties(contract *PapiContract, group *P
 	return nil
 }
 
+// AddProperty adds a property to the collection, if the property already exists
+// in the collection it will be replaced.
 func (properties *PapiProperties) AddProperty(newProperty *PapiProperty) {
-	if newProperty.Group.GroupID != "" {
+	if newProperty.PropertyID != "" {
 		for key, property := range properties.Properties.Items {
 			if property.PropertyID == newProperty.PropertyID {
 				properties.Properties.Items[key] = newProperty
@@ -87,6 +94,7 @@ func (properties *PapiProperties) AddProperty(newProperty *PapiProperty) {
 	properties.Properties.Items = append(properties.Properties.Items, newProperty)
 }
 
+// FindProperty finds a property by name within the collection
 func (properties *PapiProperties) FindProperty(name string) (*PapiProperty, error) {
 	var property *PapiProperty
 	var propertyFound bool
@@ -104,10 +112,11 @@ func (properties *PapiProperties) FindProperty(name string) (*PapiProperty, erro
 	return property, nil
 }
 
+// NewProperty creates a new property associated with the collection
 func (properties *PapiProperties) NewProperty(contract *PapiContract, group *PapiGroup) *PapiProperty {
 	property := NewPapiProperty(properties)
 
-	properties.Properties.Items = append(properties.Properties.Items, property)
+	properties.AddProperty(property)
 
 	property.Contract = contract
 	property.Group = group
@@ -122,6 +131,7 @@ func (properties *PapiProperties) NewProperty(contract *PapiContract, group *Pap
 	return property
 }
 
+// PapiProperty represents a PAPI Property
 type PapiProperty struct {
 	resource
 	parent            *PapiProperties
@@ -140,18 +150,59 @@ type PapiProperty struct {
 	CloneFrom         *PapiClonePropertyFrom `json:"cloneFrom"`
 }
 
+// NewPapiProperty creates a new PapiProperty
 func NewPapiProperty(parent *PapiProperties) *PapiProperty {
 	property := &PapiProperty{parent: parent}
 	property.Init()
 	return property
 }
 
+// PreMarshalJSON is called before JSON marshaling
+//
+// See: edgegrid/json.Marshal()
 func (property *PapiProperty) PreMarshalJSON() error {
 	property.GroupID = property.Group.GroupID
 	property.ContractID = property.Contract.ContractID
 	return nil
 }
 
+// GetProperty populates a PapiProperty
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#getaproperty
+// Endpoint: GET /papi/v0/properties/{propertyId}{?contractId,groupId}
+func (property *PapiProperty) GetProperty() error {
+	res, err := property.parent.service.client.Get(
+		fmt.Sprintf(
+			"/papi/v0/properties/%s?contractId=%s&groupId=%s",
+			property.PropertyID,
+			property.Contract.ContractID,
+			property.Group.GroupID,
+		),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if res.IsError() {
+		return NewAPIError(res)
+	}
+
+	newProperty := NewPapiProperty(property.parent)
+	if err := res.BodyJSON(newProperty); err != nil {
+		return err
+	}
+
+	*property = *newProperty
+
+	return nil
+}
+
+// GetActivations retrieves activation data for a given property
+//
+// See: PapiActivations.GetActivations()
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#listactivations
+// Endpoint: GET /papi/v0/properties/{propertyId}/activations/{?contractId,groupId}
 func (property *PapiProperty) GetActivations() (*PapiActivations, error) {
 	activations := NewPapiActivations(property.parent.service)
 
@@ -191,32 +242,19 @@ func (property *PapiProperty) GetRules() (*PapiRules, error) {
 	return rules, nil
 }
 
+// GetVersions retrieves all versions for a a given property
+//
+// See: PapiVersions.GetVersions()
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#listversions
+// Endpoint: GET /papi/v0/properties/{propertyId}/versions/{?contractId,groupId}
 func (property *PapiProperty) GetVersions() (*PapiVersions, error) {
-	// /papi/v0/properties/{propertyId}/versions/{?contractId,groupId}
-	res, err := property.parent.service.client.Get(
-		fmt.Sprintf(
-			"/papi/v0/properties/%s/versions?contractId=%s&groupId=%s",
-			property.PropertyID,
-			property.Contract.ContractID,
-			property.Group.GroupID,
-		),
-	)
-
+	versions := NewPapiVersions(property.parent.service)
+	err := versions.GetVersions(property)
 	if err != nil {
 		return nil, err
 	}
 
-	if res.IsError() {
-		return nil, NewAPIError(res)
-	}
-
-	versions := NewPapiVersions(property.parent.service)
-	if err = res.BodyJSON(versions); err != nil {
-		return nil, err
-	}
-
 	return versions, nil
-
 }
 
 // GetHostnames retrieves hostnames assigned to a given property
@@ -256,6 +294,9 @@ func (property *PapiProperty) GetHostnames(version int) (*PapiHostnames, error) 
 	return hostnames, nil
 }
 
+// PostUnmarshalJSON is called after JSON unmarshaling into PapiEdgeHostnames
+//
+// See: edgegrid/json.Unmarshal()
 func (property *PapiProperty) PostUnmarshalJSON() error {
 	property.Init()
 
@@ -323,7 +364,6 @@ func (property *PapiProperty) Save() error {
 
 	newProperty := properties.Properties.Items[0]
 	newProperty.parent = property.parent
-	property.parent.Properties.Items = append(property.parent.Properties.Items, newProperty)
 
 	*property = *newProperty
 
@@ -356,6 +396,7 @@ func (property *PapiProperty) Delete() error {
 	return nil
 }
 
+// PapiClonePropertyFrom represents
 type PapiClonePropertyFrom struct {
 	resource
 	PropertyID           string `json:"propertyId"`
@@ -364,6 +405,7 @@ type PapiClonePropertyFrom struct {
 	CloneFromVersionEtag string `json:"cloneFromVersionEtag,omitempty"`
 }
 
+// NewPapiClonePropertyFrom creates a new PapiClonePropertyFrom
 func NewPapiClonePropertyFrom() *PapiClonePropertyFrom {
 	clonePropertyFrom := &PapiClonePropertyFrom{}
 	clonePropertyFrom.Init()

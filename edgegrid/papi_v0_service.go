@@ -66,9 +66,9 @@ func (papi *PapiV0Service) GetProperties(contract *PapiContract, group *PapiGrou
 	return properties, nil
 }
 
-func (papi *PapiV0Service) GetVersions(property *PapiProperty, contract *PapiContract, group *PapiGroup) (*PapiVersions, error) {
+func (papi *PapiV0Service) GetVersions(property *PapiProperty) (*PapiVersions, error) {
 	versions := NewPapiVersions(papi)
-	if err := versions.GetVersions(property, contract, group); err != nil {
+	if err := versions.GetVersions(property); err != nil {
 		return nil, err
 	}
 
