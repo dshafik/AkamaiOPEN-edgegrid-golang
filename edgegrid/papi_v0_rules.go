@@ -400,7 +400,7 @@ func (behavior *PapiBehavior) validateOptions() error {
 	return nil
 }
 
-type PapiOptionValue map[string]interface{}
+type PapiOptionValue JSONBody
 
 type PapiAvailableCriteria struct {
 	resource

@@ -186,7 +186,7 @@ func (cpcode *PapiCpCode) Save() error {
 			cpcode.parent.Contract.ContractID,
 			cpcode.parent.Group.GroupID,
 		),
-		map[string]interface{}{"productId": cpcode.ProductID, "productIds": cpcode.ProductIDs, "cpcodeName": cpcode.CpcodeName},
+		JSONBody{"productId": cpcode.ProductID, "productIds": cpcode.ProductIDs, "cpcodeName": cpcode.CpcodeName},
 	)
 
 	if err != nil {

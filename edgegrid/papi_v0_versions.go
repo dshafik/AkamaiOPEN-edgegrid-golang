@@ -191,7 +191,7 @@ func (version *PapiVersion) Save() error {
 		return NewAPIError(res)
 	}
 
-	var location map[string]interface{}
+	var location JSONBody
 	if err = res.BodyJSON(&location); err != nil {
 		return err
 	}
