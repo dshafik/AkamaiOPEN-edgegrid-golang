@@ -1,10 +1,14 @@
 package edgegrid
 
 import (
+	gojson "encoding/json"
 	"fmt"
+	"io/ioutil"
+	"strconv"
 	"time"
 )
 
+// PapiActivations is a collection of property activations
 type PapiActivations struct {
 	resource
 	service     *PapiV0Service
@@ -16,6 +20,7 @@ type PapiActivations struct {
 	} `json:"activations"`
 }
 
+// NewPapiActivations creates a new PapiActivations
 func NewPapiActivations(service *PapiV0Service) *PapiActivations {
 	activations := &PapiActivations{service: service}
 	activations.Init()
@@ -55,14 +60,23 @@ func (activations *PapiActivations) GetActivations(property *PapiProperty) error
 	return nil
 }
 
+// GetLatestProductionActivation retrieves the latest activation for the production network
+//
+// Pass in a status to check for, defaults to PapiStatusActive
 func (activations *PapiActivations) GetLatestProductionActivation(status PapiStatusValue) (*PapiActivation, error) {
 	return activations.GetLatestActivation(PapiNetworkProduction, status)
 }
 
+// GetLatestStagingActivation retrieves the latest activation for the staging network
+//
+// Pass in a status to check for, defaults to PapiStatusActive
 func (activations *PapiActivations) GetLatestStagingActivation(status PapiStatusValue) (*PapiActivation, error) {
 	return activations.GetLatestActivation(PapiNetworkStaging, status)
 }
 
+// GetLatestActivation gets the latest activation for the specified network
+//
+// Default to PapiNetworkProduction. Pass in a status to check for, defaults to PapiStatusActive
 func (activations *PapiActivations) GetLatestActivation(network PapiNetworkValue, status PapiStatusValue) (*PapiActivation, error) {
 	if network == "" {
 		network = PapiNetworkProduction
@@ -86,25 +100,31 @@ func (activations *PapiActivations) GetLatestActivation(network PapiNetworkValue
 	return latest, nil
 }
 
+// PapiActivation represents a property activation resource
 type PapiActivation struct {
 	resource
 	parent              *PapiActivations
 	ActivationID        string              `json:"activationId,omitempty"`
 	ActivationType      PapiActivationValue `json:"activationType,omitempty"`
 	AcknowledgeWarnings []string            `json:"acknowledgeWarnings,omitempty"`
-	FastPush            bool                `json:"fastPush,omitempty"`
-	IgnoreHTTPErrors    bool                `json:"ignoreHttpErrors,omitempty"`
-	PropertyName        string              `json:"propertyName,omitempty"`
-	PropertyID          string              `json:"propertyId,omitempty"`
-	PropertyVersion     int                 `json:"propertyVersion"`
-	Network             PapiNetworkValue    `json:"network"`
-	Status              PapiStatusValue     `json:"status,omitempty"`
-	SubmitDate          time.Time           `json:"submitDate,omitempty"`
-	UpdateDate          time.Time           `json:"updateDate,omitempty"`
-	Note                string              `json:"note,omitempty"`
-	NotifyEmails        []string            `json:"notifyEmails"`
+	ComplianceRecord    struct {
+		NoncomplianceReason string `json:"noncomplianceReason"`
+	} `json:"complianceRecord,omitempty"`
+	FastPush         bool             `json:"fastPush,omitempty"`
+	IgnoreHTTPErrors bool             `json:"ignoreHttpErrors,omitempty"`
+	PropertyName     string           `json:"propertyName,omitempty"`
+	PropertyID       string           `json:"propertyId,omitempty"`
+	PropertyVersion  int              `json:"propertyVersion"`
+	Network          PapiNetworkValue `json:"network"`
+	Status           PapiStatusValue  `json:"status,omitempty"`
+	SubmitDate       time.Time        `json:"submitDate,omitempty"`
+	UpdateDate       time.Time        `json:"updateDate,omitempty"`
+	Note             string           `json:"note,omitempty"`
+	NotifyEmails     []string         `json:"notifyEmails"`
+	StatusChange     chan bool        `json:"-"`
 }
 
+// NewPapiActivation creates a new PapiActivation
 func NewPapiActivation(parent *PapiActivations) *PapiActivation {
 	activation := &PapiActivation{parent: parent}
 	activation.Init()
@@ -112,24 +132,224 @@ func NewPapiActivation(parent *PapiActivations) *PapiActivation {
 	return activation
 }
 
+// GetActivation populates the PapiActivation resource
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#getanactivation
+// Endpoint: GET /papi/v0/properties/{propertyId}/activations/{activationId}{?contractId,groupId}
+func (activation *PapiActivation) GetActivation(property *PapiProperty) (time.Duration, error) {
+	res, err := activation.parent.service.client.Get(
+		fmt.Sprintf(
+			"/papi/v0/properties/%s/activations?contractId=%s&groupId=%s",
+			property.PropertyID,
+			property.Contract.ContractID,
+			property.Group.GroupID,
+		),
+	)
+
+	if err != nil {
+		return 0, err
+	}
+
+	if res.IsError() {
+		return 0, NewAPIError(res)
+	}
+
+	newActivation := NewPapiActivation(activation.parent)
+	if err := res.BodyJSON(newActivation); err != nil {
+		return 0, err
+	}
+
+	*activation = *newActivation
+
+	retry, _ := strconv.Atoi(res.Header.Get("Retry-After"))
+	retry *= int(time.Second)
+
+	return time.Duration(retry), nil
+}
+
+// Save activates a given property
+//
+// If acknowledgeWarnings is true and warnings are returned on the first attempt,
+// a second attempt is made, acknowledging the warnings.
+//
+// See: PapiProperty.Activate()
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#activateaproperty
+// Endpoint: POST /papi/v0/properties/{propertyId}/activations/{?contractId,groupId}
+func (activation *PapiActivation) Save(property *PapiProperty, acknowledgeWarnings bool) error {
+	res, err := activation.parent.service.client.PostJSON(
+		fmt.Sprintf(
+			"/papi/v0/properties/%s/activations?contractId=%s&groupId=%s",
+			property.PropertyID,
+			property.Contract.ContractID,
+			property.Group.GroupID,
+		),
+		activation,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if res.IsError() && (!acknowledgeWarnings || (acknowledgeWarnings && res.StatusCode != 400)) {
+		return NewAPIError(res)
+	}
+
+	if res.StatusCode == 400 && acknowledgeWarnings {
+		warnings := &struct {
+			Warnings []struct {
+				Detail    string `json:"detail"`
+				MessageID string `json:"messageId"`
+			} `json:"warnings"`
+		}{}
+
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return err
+		}
+
+		if err = gojson.Unmarshal(body, warnings); err != nil {
+			return err
+		}
+
+		// Just in case we got a 400 for a different reason
+		if len(warnings.Warnings) == 0 {
+			jsonBody := &JSONBody{}
+
+			if err = gojson.Unmarshal(body, jsonBody); err != nil {
+				return err
+			}
+
+			return NewAPIErrorFromBody(res, body)
+		}
+
+		for _, warning := range warnings.Warnings {
+			activation.AcknowledgeWarnings = append(activation.AcknowledgeWarnings, warning.MessageID)
+		}
+
+		// Don't acknowledgeWarnings again, halting a potential endless recursion
+		return activation.Save(property, false)
+	}
+
+	newActivation := NewPapiActivation(activation.parent)
+	if err := res.BodyJSON(newActivation); err != nil {
+		return err
+	}
+
+	*activation = *newActivation
+	go activation.PollStatus(property)
+
+	return nil
+}
+
+// PollStatus will responsibly poll till the property is active
+//
+// The PapiActivation.StatusChange is a channel that can be used to
+// block on status changes. If a new valid status is returned, true will
+// be sent to the channel, otherwise, false will be sent.
+//
+//	go activation.PollStatus(property)
+//	for activation.Status != edgegrid.PapiStatusActive {
+//		select {
+//		case statusChanged := <-activation.StatusChange:
+//			if statusChanged == false {
+//				break
+//			}
+//		case <-time.After(time.Minute * 30):
+//			break
+//		}
+//	}
+//
+//	if activation.Status == edgegrid.PapiStatusActive {
+//		// Activation succeeded
+//	}
+func (activation *PapiActivation) PollStatus(property *PapiProperty) bool {
+	for activation.Status != PapiStatusActive {
+		retry, err := activation.GetActivation(property)
+		if err != nil {
+			activation.StatusChange <- false
+			return false
+		}
+
+		activation.StatusChange <- true
+		time.Sleep(retry)
+	}
+
+	activation.StatusChange <- true
+	return true
+}
+
+// Cancel an activation in progress
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#cancelapendingactivation
+// Endpoint: DELETE /papi/v0/properties/{propertyId}/activations/{activationId}{?contractId,groupId}
+func (activation *PapiActivation) Cancel(property *PapiProperty) error {
+	res, err := activation.parent.service.client.Delete(
+		fmt.Sprintf(
+			"/papi/v0/properties/%s/activations?contractId=%s&groupId=%s",
+			property.PropertyID,
+			property.Contract.ContractID,
+			property.Group.GroupID,
+		),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if res.IsError() {
+		return NewAPIError(res)
+	}
+
+	newActivations := NewPapiActivations(activation.parent.service)
+	if err := res.BodyJSON(newActivations); err != nil {
+		return err
+	}
+
+	*activation = *newActivations.Activations.Items[0]
+
+	return nil
+}
+
+// PapiActivationValue is used to create an "enum" of possible PapiActivation.ActivationType values
 type PapiActivationValue string
+
+// PapiNetworkValue is used to create an "enum" of possible PapiActivation.Network values
 type PapiNetworkValue string
+
+// PapiStatusValue is used to create an "enum" of possible PapiActivation.Status values
 type PapiStatusValue string
 
 const (
-	PapiActivationTypeActivate    PapiActivationValue = "ACTIVATE"
-	PapiActivationTypeDeactivate  PapiActivationValue = "DEACTIVATE"
-	PapiNetworkProduction         PapiNetworkValue    = "PRODUCTION"
-	PapiNetworkStaging            PapiNetworkValue    = "STAGING"
-	PapiStatusActive              PapiStatusValue     = "ACTIVE"
-	PapiStatusInactive            PapiStatusValue     = "INACTIVE"
-	PapiStatusPending             PapiStatusValue     = "PENDING"
-	PapiStatusZone1               PapiStatusValue     = "ZONE_1"
-	PapiStatusZone2               PapiStatusValue     = "ZONE_2"
-	PapiStatusZone3               PapiStatusValue     = "ZONE_3"
-	PapiStatusAborted             PapiStatusValue     = "ABORTED"
-	PapiStatusFailed              PapiStatusValue     = "FAILED"
-	PapiStatusDeactivated         PapiStatusValue     = "DEACTIVATED"
-	PapiStatusPendingDeactivation PapiStatusValue     = "PENDING_DEACTIVATION"
-	PapiStatusNew                 PapiStatusValue     = "NEW"
+	// PapiActivationTypeActivate PapiActivation.ActivationType value ACTIVATE
+	PapiActivationTypeActivate PapiActivationValue = "ACTIVATE"
+	// PapiActivationTypeDeactivate PapiActivation.ActivationType value DEACTIVATE
+	PapiActivationTypeDeactivate PapiActivationValue = "DEACTIVATE"
+
+	// PapiNetworkProduction PapiActivation.Network value PRODUCTION
+	PapiNetworkProduction PapiNetworkValue = "PRODUCTION"
+	// PapiNetworkStaging PapiActivation.Network value STAGING
+	PapiNetworkStaging PapiNetworkValue = "STAGING"
+
+	// PapiStatusActive PapiActivation.Status value ACTIVE
+	PapiStatusActive PapiStatusValue = "ACTIVE"
+	// PapiStatusInactive PapiActivation.Status value INACTIVE
+	PapiStatusInactive PapiStatusValue = "INACTIVE"
+	// PapiStatusPending PapiActivation.Status value PENDING
+	PapiStatusPending PapiStatusValue = "PENDING"
+	// PapiStatusZone1 PapiActivation.Status value ZONE_1
+	PapiStatusZone1 PapiStatusValue = "ZONE_1"
+	// PapiStatusZone2 PapiActivation.Status value ZONE_2
+	PapiStatusZone2 PapiStatusValue = "ZONE_2"
+	// PapiStatusZone3 PapiActivation.Status value ZONE_3
+	PapiStatusZone3 PapiStatusValue = "ZONE_3"
+	// PapiStatusAborted PapiActivation.Status value ABORTED
+	PapiStatusAborted PapiStatusValue = "ABORTED"
+	// PapiStatusFailed PapiActivation.Status value FAILED
+	PapiStatusFailed PapiStatusValue = "FAILED"
+	// PapiStatusDeactivated PapiActivation.Status value DEACTIVATED
+	PapiStatusDeactivated PapiStatusValue = "DEACTIVATED"
+	// PapiStatusPendingDeactivation PapiActivation.Status value PENDING_DEACTIVATION
+	PapiStatusPendingDeactivation PapiStatusValue = "PENDING_DEACTIVATION"
+	// PapiStatusNew PapiActivation.Status value NEW
+	PapiStatusNew PapiStatusValue = "NEW"
 )

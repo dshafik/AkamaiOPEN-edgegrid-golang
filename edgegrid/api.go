@@ -31,9 +31,13 @@ func (error APIError) Error() string {
 // NewAPIError creates a new API error based on a Response,
 // or http.Response-like.
 func NewAPIError(response *Response) APIError {
-	error := APIError{}
-
 	body, _ := ioutil.ReadAll(response.Body)
+
+	return NewAPIErrorFromBody(response, body)
+}
+
+func NewAPIErrorFromBody(response *Response, body []byte) APIError {
+	error := APIError{}
 
 	if err := json.Unmarshal(body, &error); err != nil {
 		error.Status = response.StatusCode

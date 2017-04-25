@@ -38,6 +38,8 @@ func (properties *PapiProperties) PostUnmarshalJSON() error {
 		}
 	}
 
+	properties.Complete <- true
+
 	return nil
 }
 
@@ -383,6 +385,10 @@ func (property *PapiProperty) Save() error {
 	*property = *newProperty
 
 	return nil
+}
+
+func (property *PapiProperty) Activate(activation *PapiActivation, acknowledgeWarnings bool) error {
+	return activation.Save(property, acknowledgeWarnings)
 }
 
 // Delete a property
