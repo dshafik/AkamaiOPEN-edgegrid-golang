@@ -275,33 +275,24 @@ func (property *PapiProperty) GetLatestVersion(activatedOn PapiNetworkValue) (*P
 //
 // If no version is given, the latest version is used
 //
+// See: PapiHostnames.GetHostnames()
 // API Docs: https://developer.akamai.com/api/luna/papi/resources.html#listapropertyshostnames
 // Endpoint: GET /papi/v0/properties/{propertyId}/versions/{propertyVersion}/hostnames/{?contractId,groupId}
-func (property *PapiProperty) GetHostnames(version int) (*PapiHostnames, error) {
-	if version == 0 {
-		version = property.LatestVersion
-	}
-
-	res, err := property.parent.service.client.Get(
-		fmt.Sprintf(
-			"/papi/v0/properties/%s/versions/%d/hostnames/?contractId=%s&groupId=%s",
-			property.PropertyID,
-			version,
-			property.Contract.ContractID,
-			property.Group.GroupID,
-		),
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if res.IsError() {
-		return nil, NewAPIError(res)
-	}
-
+func (property *PapiProperty) GetHostnames(version *PapiVersion) (*PapiHostnames, error) {
 	hostnames := NewPapiHostnames(property.parent.service)
-	if err = res.BodyJSON(hostnames); err != nil {
+	hostnames.PropertyID = property.PropertyID
+	hostnames.ContractID = property.Contract.ContractID
+	hostnames.GroupID = property.Group.GroupID
+
+	if version == nil {
+		var err error
+		version, err = property.GetLatestVersion("")
+		if err != nil {
+			return nil, err
+		}
+	}
+	err := hostnames.GetHostnames(version)
+	if err != nil {
 		return nil, err
 	}
 
