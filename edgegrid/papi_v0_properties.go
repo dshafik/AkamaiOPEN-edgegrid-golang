@@ -242,6 +242,16 @@ func (property *PapiProperty) GetRules() (*PapiRules, error) {
 	return rules, nil
 }
 
+// GetRulesDigest fetches the Etag for a rule tree
+//
+// See: PapiRules.GetRulesDigest()
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#getaruletreesdigest
+// Endpoint: HEAD /papi/v0/properties/{propertyId}/versions/{propertyVersion}/rules/{?contractId,groupId}
+func (property *PapiProperty) GetRulesDigest() (string, error) {
+	rules := NewPapiRules(property.parent.service)
+	return rules.GetRulesDigest(property)
+}
+
 // GetVersions retrieves all versions for a a given property
 //
 // See: PapiVersions.GetVersions()

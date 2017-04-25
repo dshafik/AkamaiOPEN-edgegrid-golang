@@ -2,11 +2,13 @@ package edgegrid
 
 import (
 	"fmt"
-	"github.com/xeipuuv/gojsonschema"
 	"io/ioutil"
 	"strings"
+
+	"github.com/xeipuuv/gojsonschema"
 )
 
+// PapiRules is a collection of property rules
 type PapiRules struct {
 	resource
 	service         *PapiV0Service
@@ -21,6 +23,7 @@ type PapiRules struct {
 	Errors          []*PapiRuleErrors `json:"errors,omitempty"`
 }
 
+// NewPapiRules creates a new PapiRules
 func NewPapiRules(service *PapiV0Service) *PapiRules {
 	rules := &PapiRules{service: service}
 	rules.Init()
@@ -28,10 +31,13 @@ func NewPapiRules(service *PapiV0Service) *PapiRules {
 	return rules
 }
 
+// PostUnmarshalJSON is called after JSON unmarshaling into PapiEdgeHostnames
+//
+// See: edgegrid/json.Unmarshal()
 func (rules *PapiRules) PostUnmarshalJSON() error {
 	rules.Init()
 
-	for key, _ := range rules.Rules.Behaviors {
+	for key := range rules.Rules.Behaviors {
 		rules.Rules.Behaviors[key].parent = rules.Rules
 		if len(rules.Rules.Children) > 0 {
 			for _, v := range rules.Rules.GetChildren(0, 0) {
@@ -42,18 +48,22 @@ func (rules *PapiRules) PostUnmarshalJSON() error {
 		}
 	}
 
-	for key, _ := range rules.Rules.Criteria {
+	for key := range rules.Rules.Criteria {
 		rules.Rules.Criteria[key].parent = rules.Rules
 	}
 
 	return nil
 }
 
+// PreMarshalJSON is called before JSON marshaling
+//
+// See: edgegrid/json.Marshal()
 func (rules *PapiRules) PreMarshalJSON() error {
 	rules.Errors = nil
 	return nil
 }
 
+// PrintRules prints a reasonably easy to read tree of all rules and behaviors on a property
 func (rules *PapiRules) PrintRules() error {
 	group := NewPapiGroup(NewPapiGroups(rules.service))
 	group.GroupID = rules.GroupID
@@ -116,14 +126,14 @@ func (rules *PapiRules) PrintRules() error {
 		children := rules.Rules.GetChildren(0, 0)
 		for _, child := range children {
 			i++
-			spacer := strings.TrimSuffix(strings.Repeat(prefix, child.depth), "│")
+			spacer := strings.TrimSuffix(strings.Repeat(prefix, child.Depth), "│")
 			if i < len(children) {
 				fmt.Printf("%s├── Section: %s\n", spacer, child.Name)
 			} else {
 				fmt.Printf("%s└── Section: %s\n", spacer, child.Name)
 			}
 
-			spacer = strings.TrimSuffix(strings.Repeat(prefix, child.depth+1), "│")
+			spacer = strings.TrimSuffix(strings.Repeat(prefix, child.Depth+1), "│")
 			j := 0
 			for _, behavior := range child.Behaviors {
 				j++
@@ -133,7 +143,7 @@ func (rules *PapiRules) PrintRules() error {
 					//spacer = strings.TrimSuffix(spacer, "│   ") + "    "
 					fmt.Printf("%s└── Behavior: %s\n", spacer, behavior.Name)
 				}
-				space := strings.TrimSuffix(strings.Repeat(prefix, child.depth+2), "│")
+				space := strings.TrimSuffix(strings.Repeat(prefix, child.Depth+2), "│")
 
 				fmt.Printf("%s├── Criteria\n", space)
 				i := 0
@@ -203,6 +213,35 @@ func (rules *PapiRules) GetRules(property *PapiProperty) error {
 	return nil
 }
 
+// GetRulesDigest fetches the Etag for a rule tree
+//
+// See: PapiProperty.GetRulesDigest()
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#getaruletreesdigest
+// Endpoint: HEAD /papi/v0/properties/{propertyId}/versions/{propertyVersion}/rules/{?contractId,groupId}
+func (rules *PapiRules) GetRulesDigest(property *PapiProperty) (string, error) {
+	res, err := rules.service.client.Head(fmt.Sprintf(
+		"/papi/v0/properties/%s/versions/%d/rules?contractId=%s&groupId=%s",
+		property.PropertyID,
+		property.LatestVersion,
+		property.Contract.ContractID,
+		property.Group.GroupID,
+	))
+
+	if err != nil {
+		return "", err
+	}
+
+	if res.IsError() {
+		return "", NewAPIError(res)
+	}
+
+	return res.Header.Get("Etag"), nil
+}
+
+// GetAllRules returns a flattened rule tree for easy iteration
+//
+// Each PapiRule has a Depth property that makes it possible to identify
+// it's original placement in the tree.
 func (rules *PapiRules) GetAllRules() []*PapiRule {
 	var flatRules []*PapiRule
 	flatRules = append(flatRules, rules.Rules)
@@ -241,12 +280,42 @@ func (rules *PapiRules) Save() error {
 	}
 
 	if len(rules.Errors) != 0 {
-		return fmt.Errorf("There were %d errors. See rules.Errors for details.", len(rules.Errors))
+		return fmt.Errorf("there were %d errors. See rules.Errors for details", len(rules.Errors))
 	}
 
 	return nil
 }
 
+// SetBehaviorOptions sets the options on a given behavior path
+//
+// path is a / delimited path from the root of the rule set to the behavior.
+// All existing options are overwritten. To add/replace options see AddBehaviorOptions
+// instead.
+//
+// For example, to set the CP Code, the behavior exists at the root, and is called "cpCode",
+// making the path, "/cpCode":
+//
+//	rules.SetBehaviorOptions(
+//		"/cpCode",
+//		edgegrid.PapiOptionValue{
+//			"value": edgegrid.PapiOptionValue{
+//				"id": cpcode,
+//			},
+//		},
+//	)
+//
+// The adaptiveImageCompression behavior defaults to being under the Performance -> JPEG Images,
+// making the path "/Performance/JPEG Images/adaptiveImageCompression":
+//
+//	rules.SetBehaviorOptions(
+//		"/Performance/JPEG Images/adaptiveImageCompression"",
+//		edgegrid.PapiOptionValue{
+//			"tier3StandardCompressionValue": 30,
+//		},
+//	)
+//
+// However, this would replace all other options for that behavior, meaning the example
+// would fail to validate without the other required options.
 func (rules *PapiRules) SetBehaviorOptions(path string, newOptions PapiOptionValue) error {
 	behavior, err := rules.FindBehavior(path)
 	if err != nil {
@@ -257,6 +326,35 @@ func (rules *PapiRules) SetBehaviorOptions(path string, newOptions PapiOptionVal
 	return nil
 }
 
+// AddBehaviorOptions adds/replaces options on a given behavior path
+//
+// path is a / delimited path from the root of the rule set to the behavior.
+// Individual existing options are overwritten. To replace all options, see SetBehaviorOptions
+// instead.
+//
+// For example, to change the CP Code, the behavior exists at the root, and is called "cpCode",
+// making the path, "/cpCode":
+//
+//	rules.AddBehaviorOptions(
+//		"/cpCode",
+//		edgegrid.PapiOptionValue{
+//			"value": edgegrid.PapiOptionValue{
+//				"id": cpcode,
+//			},
+//		},
+//	)
+//
+// The adaptiveImageCompression behavior defaults to being under the Performance -> JPEG Images,
+// making the path "/Performance/JPEG Images/adaptiveImageCompression":
+//
+//	rules.AddBehaviorOptions(
+//		"/Performance/JPEG Images/adaptiveImageCompression"",
+//		edgegrid.PapiOptionValue{
+//			"tier3StandardCompressionValue": 30,
+//		},
+//	)
+//
+// This will only change the "tier3StandardCompressionValue" option value.
 func (rules *PapiRules) AddBehaviorOptions(path string, newOptions PapiOptionValue) error {
 	behavior, err := rules.FindBehavior(path)
 	if err != nil {
@@ -272,6 +370,9 @@ func (rules *PapiRules) AddBehaviorOptions(path string, newOptions PapiOptionVal
 	return nil
 }
 
+// FindBehavior locates a specific behavior by path
+//
+// See SetBehaviorOptions and AddBehaviorOptions for examples of paths.
 func (rules *PapiRules) FindBehavior(path string) (*PapiBehavior, error) {
 	if len(path) <= 1 {
 		return nil, fmt.Errorf("Invalid Path: \"%s\"", path)
@@ -311,10 +412,11 @@ func (rules *PapiRules) FindBehavior(path string) (*PapiBehavior, error) {
 	return nil, fmt.Errorf("Path not found: \"%s\"", path)
 }
 
+// PapiRule represents a property rule resource
 type PapiRule struct {
 	resource
 	parent         *PapiRules
-	depth          int
+	Depth          int             `json:"-"`
 	Name           string          `json:"name"`
 	Criteria       []*PapiCriteria `json:"criteria,omitempty"`
 	Behaviors      []*PapiBehavior `json:"behaviors,omitempty"`
@@ -326,6 +428,7 @@ type PapiRule struct {
 	} `json:"options,omitempty"`
 }
 
+// NewPapiRule creates a new PapiRule
 func NewPapiRule(parent *PapiRules) *PapiRule {
 	rule := &PapiRule{parent: parent}
 	rule.Init()
@@ -333,8 +436,9 @@ func NewPapiRule(parent *PapiRules) *PapiRule {
 	return rule
 }
 
+// GetChildren recurses a Rule tree and retrieves all child rules
 func (rule *PapiRule) GetChildren(depth int, limit int) []*PapiRule {
-	depth += 1
+	depth++
 
 	if limit != 0 && depth > limit {
 		return nil
@@ -343,7 +447,7 @@ func (rule *PapiRule) GetChildren(depth int, limit int) []*PapiRule {
 	var children []*PapiRule
 	if len(rule.Children) > 0 {
 		for _, v := range rule.Children {
-			v.depth = depth
+			v.Depth = depth
 			children = append(children, v)
 			children = append(children, v.GetChildren(depth, limit)...)
 		}
@@ -352,18 +456,22 @@ func (rule *PapiRule) GetChildren(depth int, limit int) []*PapiRule {
 	return children
 }
 
+// AddChildRule appends a child rule
 func (rule *PapiRule) AddChildRule(child *PapiRule) {
 	rule.Children = append(rule.Children, child)
 }
 
+// AddCriteria appends a rule criteria
 func (rule *PapiRule) AddCriteria(critera *PapiCriteria) {
 	rule.Criteria = append(rule.Criteria, critera)
 }
 
+// AddBehavior appends a rule behavior
 func (rule *PapiRule) AddBehavior(behavior *PapiBehavior) {
 	rule.Behaviors = append(rule.Behaviors, behavior)
 }
 
+// PapiCriteria represents a rule criteria resource
 type PapiCriteria struct {
 	resource
 	parent  *PapiRule
@@ -371,6 +479,7 @@ type PapiCriteria struct {
 	Options *PapiOptionValue `json:"options"`
 }
 
+// NewPapiCriteria creates a new PapiCriteria
 func NewPapiCriteria(parent *PapiRule) *PapiCriteria {
 	criteria := &PapiCriteria{parent: parent}
 	criteria.Init()
@@ -378,10 +487,7 @@ func NewPapiCriteria(parent *PapiRule) *PapiCriteria {
 	return criteria
 }
 
-func (criteria *PapiCriteria) validateOptions() error {
-	return nil
-}
-
+// PapiBehavior represents a rule behavior resource
 type PapiBehavior struct {
 	resource
 	parent  *PapiRule
@@ -389,6 +495,7 @@ type PapiBehavior struct {
 	Options *PapiOptionValue `json:"options"`
 }
 
+// NewPapiBehavior creates a new PapiBehavior
 func NewPapiBehavior(parent *PapiRule) *PapiBehavior {
 	behavior := &PapiBehavior{parent: parent}
 	behavior.Init()
@@ -396,12 +503,14 @@ func NewPapiBehavior(parent *PapiRule) *PapiBehavior {
 	return behavior
 }
 
-func (behavior *PapiBehavior) validateOptions() error {
-	return nil
-}
-
+// PapiOptionValue represents a generic option value
+//
+// PapiOptionValue is a map with string keys, and any
+// type of value. You can nest PapiOptionValues as necessary
+// to create more complex values.
 type PapiOptionValue JSONBody
 
+// PapiAvailableCriteria represents a collection of available rule criteria
 type PapiAvailableCriteria struct {
 	resource
 	service           *PapiV0Service
@@ -417,6 +526,7 @@ type PapiAvailableCriteria struct {
 	} `json:"availableCriteria"`
 }
 
+// NewPapiAvailableCriteria creates a new PapiAvailableCriteria
 func NewPapiAvailableCriteria(service *PapiV0Service) *PapiAvailableCriteria {
 	availableCriteria := &PapiAvailableCriteria{service: service}
 	availableCriteria.Init()
@@ -457,6 +567,7 @@ func (availableCriteria *PapiAvailableCriteria) GetAvailableCriteria(property *P
 	return nil
 }
 
+// PapiAvailableBehaviors represents a collection of available rule behaviors
 type PapiAvailableBehaviors struct {
 	resource
 	service    *PapiV0Service
@@ -469,6 +580,7 @@ type PapiAvailableBehaviors struct {
 	} `json:"behaviors"`
 }
 
+// NewPapiAvailableBehaviors creates a new PapiAvailableBehaviors
 func NewPapiAvailableBehaviors(service *PapiV0Service) *PapiAvailableBehaviors {
 	availableBehaviors := &PapiAvailableBehaviors{service: service}
 	availableBehaviors.Init()
@@ -476,10 +588,13 @@ func NewPapiAvailableBehaviors(service *PapiV0Service) *PapiAvailableBehaviors {
 	return availableBehaviors
 }
 
-func (availableBehaviors *PapiAvailableBehaviors) PostUnmashalJSON() error {
+// PostUnmarshalJSON is called after JSON unmarshaling into PapiEdgeHostnames
+//
+// See: edgegrid/json.Unmarshal()
+func (availableBehaviors *PapiAvailableBehaviors) PostUnmarshalJSON() error {
 	availableBehaviors.Init()
 
-	for key, _ := range availableBehaviors.Behaviors.Items {
+	for key := range availableBehaviors.Behaviors.Items {
 		availableBehaviors.Behaviors.Items[key].parent = availableBehaviors
 	}
 
@@ -522,6 +637,7 @@ func (availableBehaviors *PapiAvailableBehaviors) GetAvailableBehaviors(property
 	return nil
 }
 
+// PapiAvailableBehavior represents an available behavior resource
 type PapiAvailableBehavior struct {
 	resource
 	parent     *PapiAvailableBehaviors
@@ -529,6 +645,7 @@ type PapiAvailableBehavior struct {
 	SchemaLink string `json:"schemaLink"`
 }
 
+// NewPapiAvailableBehavior creates a new PapiAvailableBehavior
 func NewPapiAvailableBehavior(parent *PapiAvailableBehaviors) *PapiAvailableBehavior {
 	availableBehavior := &PapiAvailableBehavior{parent: parent}
 	availableBehavior.Init()
@@ -536,6 +653,7 @@ func NewPapiAvailableBehavior(parent *PapiAvailableBehaviors) *PapiAvailableBeha
 	return availableBehavior
 }
 
+// GetSchema retrieves the JSON schema for an available behavior
 func (behavior *PapiAvailableBehavior) GetSchema() (*gojsonschema.Schema, error) {
 	res, err := behavior.parent.service.client.Get(behavior.SchemaLink)
 
@@ -551,6 +669,7 @@ func (behavior *PapiAvailableBehavior) GetSchema() (*gojsonschema.Schema, error)
 	return schema, err
 }
 
+// PapiRuleErrors represents an validate error returned for a rule
 type PapiRuleErrors struct {
 	resource
 	Type         string `json:"type"`
@@ -560,6 +679,7 @@ type PapiRuleErrors struct {
 	BehaviorName string `json:"behaviorName"`
 }
 
+// NewPapiRuleErrors creates a new PapiRuleErrors
 func NewPapiRuleErrors() *PapiRuleErrors {
 	ruleErrors := &PapiRuleErrors{}
 	ruleErrors.Init()
