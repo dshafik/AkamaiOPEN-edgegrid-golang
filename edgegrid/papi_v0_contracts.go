@@ -5,6 +5,7 @@ import (
 	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid/json"
 )
 
+// PapiContracts represents a collection of property manager contracts
 type PapiContracts struct {
 	resource
 	service   *PapiV0Service
@@ -14,6 +15,7 @@ type PapiContracts struct {
 	} `json:"contracts"`
 }
 
+// NewPapiContracts creates a new PapiContracts
 func NewPapiContracts(service *PapiV0Service) *PapiContracts {
 	contracts := &PapiContracts{
 		service: service,
@@ -22,6 +24,9 @@ func NewPapiContracts(service *PapiV0Service) *PapiContracts {
 	return contracts
 }
 
+// PostUnmarshalJSON is called after JSON unmarshaling into PapiEdgeHostnames
+//
+// See: edgegrid/json.Unmarshal()
 func (contracts *PapiContracts) PostUnmarshalJSON() error {
 	contracts.Init()
 
@@ -67,6 +72,7 @@ func (contracts *PapiContracts) GetContracts() error {
 	return nil
 }
 
+// PapiContract represents a property contract resource
 type PapiContract struct {
 	resource
 	parent           *PapiContracts
@@ -74,6 +80,7 @@ type PapiContract struct {
 	ContractTypeName string `json:"contractTypeName"`
 }
 
+// NewPapiContract creates a new PapiContract
 func NewPapiContract(parent *PapiContracts) *PapiContract {
 	contract := &PapiContract{
 		parent: parent,
@@ -82,6 +89,7 @@ func NewPapiContract(parent *PapiContracts) *PapiContract {
 	return contract
 }
 
+// GetContract populates a PapiContract
 func (contract *PapiContract) GetContract() {
 	contracts, err := contract.parent.service.GetContracts()
 	if err != nil {
@@ -99,6 +107,7 @@ func (contract *PapiContract) GetContract() {
 	contract.Complete <- false
 }
 
+// GetProducts gets products associated with a contract
 func (contract *PapiContract) GetProducts() (*PapiProducts, error) {
 	res, err := contract.parent.service.client.Get(
 		fmt.Sprintf(

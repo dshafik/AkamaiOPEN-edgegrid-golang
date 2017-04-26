@@ -387,6 +387,14 @@ func (property *PapiProperty) Save() error {
 	return nil
 }
 
+// Activate activates a given property
+//
+// If acknowledgeWarnings is true and warnings are returned on the first attempt,
+// a second attempt is made, acknowledging the warnings.
+//
+// See: PapiActivation.Save()
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#activateaproperty
+// Endpoint: POST /papi/v0/properties/{propertyId}/activations/{?contractId,groupId}
 func (property *PapiProperty) Activate(activation *PapiActivation, acknowledgeWarnings bool) error {
 	return activation.Save(property, acknowledgeWarnings)
 }

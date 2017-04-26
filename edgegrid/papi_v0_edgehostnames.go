@@ -117,7 +117,7 @@ func NewPapiEdgeHostname(edgeHostnames *PapiEdgeHostnames) *PapiEdgeHostname {
 	return edgeHostname
 }
 
-// GetEdgehostname populates PapiEdgeHostname with data
+// GetEdgeHostname populates PapiEdgeHostname with data
 //
 // API Docs: https://developer.akamai.com/api/luna/papi/resources.html#getanedgehostname
 // Endpoint: GET /papi/v0/edgehostnames/{edgeHostnameId}{?contractId,groupId,options}

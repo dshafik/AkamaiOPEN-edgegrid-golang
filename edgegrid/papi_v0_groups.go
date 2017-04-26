@@ -5,6 +5,7 @@ import (
 	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid/json"
 )
 
+// PapiGroups represents a collection of PAPI groups
 type PapiGroups struct {
 	resource
 	service     *PapiV0Service
@@ -15,11 +16,15 @@ type PapiGroups struct {
 	} `json:"groups"`
 }
 
+// NewPapiGroups creates a new PapiGroups
 func NewPapiGroups(service *PapiV0Service) *PapiGroups {
 	groups := &PapiGroups{service: service}
 	return groups
 }
 
+// PostUnmarshalJSON is called after JSON unmarshaling into PapiEdgeHostnames
+//
+// See: edgegrid/json.Unmarshal()
 func (groups *PapiGroups) PostUnmarshalJSON() error {
 	groups.Init()
 	for key, group := range groups.Groups.Items {
@@ -60,6 +65,7 @@ func (groups *PapiGroups) GetGroups() error {
 	return nil
 }
 
+// AddGroup adds a group to a PapiGroups collection
 func (groups *PapiGroups) AddGroup(newGroup *PapiGroup) {
 	if newGroup.GroupID != "" {
 		for key, group := range groups.Groups.Items {
@@ -75,6 +81,7 @@ func (groups *PapiGroups) AddGroup(newGroup *PapiGroup) {
 	groups.Groups.Items = append(groups.Groups.Items, newGroup)
 }
 
+// FindGroup finds a specific group by name
 func (groups *PapiGroups) FindGroup(name string) (*PapiGroup, error) {
 	var group *PapiGroup
 	var groupFound bool
@@ -92,6 +99,7 @@ func (groups *PapiGroups) FindGroup(name string) (*PapiGroup, error) {
 	return group, nil
 }
 
+// PapiGroup represents a group resource
 type PapiGroup struct {
 	resource
 	parent        *PapiGroups
@@ -101,6 +109,7 @@ type PapiGroup struct {
 	ContractIDs   []string `json:"contractIds"`
 }
 
+// NewPapiGroup creates a new PapiGroup
 func NewPapiGroup(parent *PapiGroups) *PapiGroup {
 	group := &PapiGroup{
 		parent: parent,
@@ -109,6 +118,7 @@ func NewPapiGroup(parent *PapiGroups) *PapiGroup {
 	return group
 }
 
+// GetGroup populates a PapiGroup
 func (group *PapiGroup) GetGroup() {
 	groups, err := group.parent.service.GetGroups()
 	if err != nil {
@@ -129,18 +139,22 @@ func (group *PapiGroup) GetGroup() {
 	group.Complete <- false
 }
 
+// GetProperties retrieves all properties associated with a given group and contract
 func (group *PapiGroup) GetProperties(contract *PapiContract) (*PapiProperties, error) {
 	return group.parent.service.GetProperties(contract, group)
 }
 
+// GetCpCodes retrieves all CP codes associated with a given group and contract
 func (group *PapiGroup) GetCpCodes(contract *PapiContract) (*PapiCpCodes, error) {
 	return group.parent.service.GetCpCodes(contract, group)
 }
 
+// GetEdgeHostnames retrieves all Edge hostnames associated with a given group/contract
 func (group *PapiGroup) GetEdgeHostnames(contract *PapiContract, options string) (*PapiEdgeHostnames, error) {
 	return group.parent.service.GetEdgeHostnames(contract, group, options)
 }
 
+// NewProperty creates a property associated with a given group/contract
 func (group *PapiGroup) NewProperty(contract *PapiContract) (*PapiProperty, error) {
 	return group.parent.service.NewProperty(contract, group)
 }

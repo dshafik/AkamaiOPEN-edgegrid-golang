@@ -5,6 +5,7 @@ import (
 	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid/json"
 )
 
+// PapiProducts represents a collection of products
 type PapiProducts struct {
 	resource
 	service    *PapiV0Service
@@ -15,6 +16,7 @@ type PapiProducts struct {
 	} `json:"products"`
 }
 
+// NewPapiProducts creates a new PapiProducts
 func NewPapiProducts(service *PapiV0Service) *PapiProducts {
 	products := &PapiProducts{service: service}
 	products.Init()
@@ -22,6 +24,9 @@ func NewPapiProducts(service *PapiV0Service) *PapiProducts {
 	return products
 }
 
+// PostUnmarshalJSON is called after JSON unmarshaling into PapiEdgeHostnames
+//
+// See: edgegrid/json.Unmarshal()
 func (products *PapiProducts) PostUnmarshalJSON() error {
 	products.Init()
 
@@ -67,6 +72,7 @@ func (products *PapiProducts) GetProducts(contract *PapiContract) error {
 	return nil
 }
 
+// PapiProduct represents a product resource
 type PapiProduct struct {
 	resource
 	parent      *PapiProducts
@@ -74,6 +80,7 @@ type PapiProduct struct {
 	ProductID   string `json:"productId"`
 }
 
+// NewPapiProduct creates a new PapiProduct
 func NewPapiProduct(parent *PapiProducts) *PapiProduct {
 	product := &PapiProduct{parent: parent}
 	product.Init()
