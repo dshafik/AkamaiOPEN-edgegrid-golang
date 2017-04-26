@@ -36,6 +36,10 @@ func NewAPIError(response *Response) APIError {
 	return NewAPIErrorFromBody(response, body)
 }
 
+// NewAPIErrorFromBody creates a new API error, allowing you to pass in a body
+//
+// This function is intended to be used after the body has already been read for
+// other purposes.
 func NewAPIErrorFromBody(response *Response, body []byte) APIError {
 	error := APIError{}
 
