@@ -1,5 +1,11 @@
 package edgegrid
 
+import (
+	"fmt"
+	"github.com/xeipuuv/gojsonschema"
+	"io/ioutil"
+)
+
 // PapiRuleFormats is a collection of available rule formats
 type PapiRuleFormats struct {
 	resource
@@ -40,4 +46,33 @@ func (ruleFormats *PapiRuleFormats) GetRuleFormats() error {
 	*ruleFormats = *newRuleFormats
 
 	return nil
+}
+
+// GetSchema fetches the schema for a given product and rule format
+//
+// API Docs: https://developer.akamai.com/api/luna/papi/resources.html#getaruleformatsschema
+// Endpoint: /papi/v0/schemas/products/{productId}/{ruleFormat}
+func (ruleFormats *PapiRuleFormats) GetSchema(product string, ruleFormat string) (*gojsonschema.Schema, error) {
+	res, err := ruleFormats.service.client.Get(
+		fmt.Sprintf(
+			"/papi/v0/schemas/products/%s/%s",
+			product,
+			ruleFormat,
+		),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if res.IsError() {
+		return nil, NewAPIError(res)
+	}
+
+	schemaBytes, _ := ioutil.ReadAll(res.Body)
+	schemaBody := string(schemaBytes)
+	loader := gojsonschema.NewStringLoader(schemaBody)
+	schema, err := gojsonschema.NewSchema(loader)
+
+	return schema, err
 }
