@@ -1,10 +1,12 @@
 package edgegrid
 
 import (
+	gojson "encoding/json"
 	"fmt"
-	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid/json"
 	"io/ioutil"
 	"strings"
+
+	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid/json"
 )
 
 // APIError exposes an Akamai OPEN Edgegrid Error
@@ -55,7 +57,7 @@ func NewAPIErrorFromBody(response *Response, body []byte) APIError {
 }
 
 type resource struct {
-	Complete chan bool
+	Complete chan bool `json:"-"`
 }
 
 // Init initializes the Complete channel, if it is necessary
