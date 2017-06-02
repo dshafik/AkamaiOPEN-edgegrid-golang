@@ -77,3 +77,7 @@ func (resource *resource) PostUnmarshalJSON() error {
 	resource.Complete <- true
 	return nil
 }
+
+func (resource *resource) GetJSON() ([]byte, error) {
+	return gojson.MarshalIndent(resource, "", "    ")
+}
