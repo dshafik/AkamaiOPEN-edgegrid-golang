@@ -90,10 +90,10 @@ func NewPapiContract(parent *PapiContracts) *PapiContract {
 }
 
 // GetContract populates a PapiContract
-func (contract *PapiContract) GetContract() {
+func (contract *PapiContract) GetContract() error {
 	contracts, err := contract.parent.service.GetContracts()
 	if err != nil {
-		return
+		return err
 	}
 
 	for _, c := range contracts.Contracts.Items {
@@ -101,10 +101,11 @@ func (contract *PapiContract) GetContract() {
 			contract.parent = c.parent
 			contract.ContractTypeName = c.ContractTypeName
 			contract.Complete <- true
-			return
+			return nil
 		}
 	}
 	contract.Complete <- false
+	return fmt.Errorf("contract \"%s\" not found", contract.ContractID)
 }
 
 // GetProducts gets products associated with a contract
