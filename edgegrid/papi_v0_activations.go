@@ -104,24 +104,26 @@ func (activations *PapiActivations) GetLatestActivation(network PapiNetworkValue
 type PapiActivation struct {
 	resource
 	parent              *PapiActivations
-	ActivationID        string              `json:"activationId,omitempty"`
-	ActivationType      PapiActivationValue `json:"activationType,omitempty"`
-	AcknowledgeWarnings []string            `json:"acknowledgeWarnings,omitempty"`
-	ComplianceRecord    struct {
-		NoncomplianceReason string `json:"noncomplianceReason"`
-	} `json:"complianceRecord,omitempty"`
-	FastPush         bool             `json:"fastPush,omitempty"`
-	IgnoreHTTPErrors bool             `json:"ignoreHttpErrors,omitempty"`
-	PropertyName     string           `json:"propertyName,omitempty"`
-	PropertyID       string           `json:"propertyId,omitempty"`
-	PropertyVersion  int              `json:"propertyVersion"`
-	Network          PapiNetworkValue `json:"network"`
-	Status           PapiStatusValue  `json:"status,omitempty"`
-	SubmitDate       time.Time        `json:"submitDate,omitempty"`
-	UpdateDate       time.Time        `json:"updateDate,omitempty"`
-	Note             string           `json:"note,omitempty"`
-	NotifyEmails     []string         `json:"notifyEmails"`
-	StatusChange     chan bool        `json:"-"`
+	ActivationID        string                          `json:"activationId,omitempty"`
+	ActivationType      PapiActivationValue             `json:"activationType,omitempty"`
+	AcknowledgeWarnings []string                        `json:"acknowledgeWarnings,omitempty"`
+	ComplianceRecord    *PapiActivationComplianceRecord `json:"complianceRecord,omitempty"`
+	FastPush            bool                            `json:"fastPush,omitempty"`
+	IgnoreHTTPErrors    bool                            `json:"ignoreHttpErrors,omitempty"`
+	PropertyName        string                          `json:"propertyName,omitempty"`
+	PropertyID          string                          `json:"propertyId,omitempty"`
+	PropertyVersion     int                             `json:"propertyVersion"`
+	Network             PapiNetworkValue                `json:"network"`
+	Status              PapiStatusValue                 `json:"status,omitempty"`
+	SubmitDate          string                          `json:"submitDate,omitempty"`
+	UpdateDate          string                          `json:"updateDate,omitempty"`
+	Note                string                          `json:"note,omitempty"`
+	NotifyEmails        []string                        `json:"notifyEmails"`
+	StatusChange        chan bool                       `json:"-"`
+}
+
+type PapiActivationComplianceRecord struct {
+	NoncomplianceReason string `json:"noncomplianceReason,omitempty"`
 }
 
 // NewPapiActivation creates a new PapiActivation
@@ -132,6 +134,11 @@ func NewPapiActivation(parent *PapiActivations) *PapiActivation {
 	return activation
 }
 
+func (activation *PapiActivation) Init() {
+	activation.Complete = make(chan bool, 1)
+	activation.StatusChange = make(chan bool, 1)
+}
+
 // GetActivation populates the PapiActivation resource
 //
 // API Docs: https://developer.akamai.com/api/luna/papi/resources.html#getanactivation
@@ -139,8 +146,9 @@ func NewPapiActivation(parent *PapiActivations) *PapiActivation {
 func (activation *PapiActivation) GetActivation(property *PapiProperty) (time.Duration, error) {
 	res, err := activation.parent.service.client.Get(
 		fmt.Sprintf(
-			"/papi/v0/properties/%s/activations?contractId=%s&groupId=%s",
+			"/papi/v0/properties/%s/activations/%s?contractId=%s&groupId=%s",
 			property.PropertyID,
+			activation.ActivationID,
 			property.Contract.ContractID,
 			property.Group.GroupID,
 		),
@@ -154,10 +162,13 @@ func (activation *PapiActivation) GetActivation(property *PapiProperty) (time.Du
 		return 0, NewAPIError(res)
 	}
 
-	newActivation := NewPapiActivation(activation.parent)
-	if err := res.BodyJSON(newActivation); err != nil {
+	activations := NewPapiActivations(activation.parent.service)
+	if err := res.BodyJSON(activations); err != nil {
 		return 0, err
 	}
+
+	newActivation := activations.Activations.Items[0]
+	newActivation.parent = activation.parent
 
 	*activation = *newActivation
 
@@ -176,6 +187,12 @@ func (activation *PapiActivation) GetActivation(property *PapiProperty) (time.Du
 // API Docs: https://developer.akamai.com/api/luna/papi/resources.html#activateaproperty
 // Endpoint: POST /papi/v0/properties/{propertyId}/activations/{?contractId,groupId}
 func (activation *PapiActivation) Save(property *PapiProperty, acknowledgeWarnings bool) error {
+	if activation.ComplianceRecord == nil {
+		activation.ComplianceRecord = &PapiActivationComplianceRecord{
+			NoncomplianceReason: "NO_PRODUCTION_TRAFFIC",
+		}
+	}
+
 	res, err := activation.parent.service.client.PostJSON(
 		fmt.Sprintf(
 			"/papi/v0/properties/%s/activations?contractId=%s&groupId=%s",
@@ -199,7 +216,7 @@ func (activation *PapiActivation) Save(property *PapiProperty, acknowledgeWarnin
 			Warnings []struct {
 				Detail    string `json:"detail"`
 				MessageID string `json:"messageId"`
-			} `json:"warnings"`
+			} `json:"warnings,omitempty"`
 		}{}
 
 		body, err := ioutil.ReadAll(res.Body)
@@ -230,18 +247,29 @@ func (activation *PapiActivation) Save(property *PapiProperty, acknowledgeWarnin
 		return activation.Save(property, false)
 	}
 
-	newActivation := NewPapiActivation(activation.parent)
-	if err := res.BodyJSON(newActivation); err != nil {
+	var location JSONBody
+	if err = res.BodyJSON(&location); err != nil {
 		return err
 	}
 
+	res, err = activation.parent.service.client.Get(
+		location["activationLink"].(string),
+	)
+
+	activations := NewPapiActivations(activation.parent.service)
+	if err := res.BodyJSON(activations); err != nil {
+		return err
+	}
+
+	newActivation := activations.Activations.Items[0]
+	newActivation.parent = activation.parent
+
 	*activation = *newActivation
-	go activation.PollStatus(property)
 
 	return nil
 }
 
-// PollStatus will responsibly poll till the property is active
+// PollStatus will responsibly poll till the property is active or an error occurs
 //
 // The PapiActivation.StatusChange is a channel that can be used to
 // block on status changes. If a new valid status is returned, true will
@@ -263,18 +291,35 @@ func (activation *PapiActivation) Save(property *PapiProperty, acknowledgeWarnin
 //		// Activation succeeded
 //	}
 func (activation *PapiActivation) PollStatus(property *PapiProperty) bool {
-	for activation.Status != PapiStatusActive {
-		retry, err := activation.GetActivation(property)
+	currentStatus := activation.Status
+	var retry time.Duration = 0
+
+	for currentStatus != PapiStatusActive {
+		time.Sleep(retry)
+
+		var err error
+		retry, err = activation.GetActivation(property)
+
 		if err != nil {
 			activation.StatusChange <- false
 			return false
 		}
 
-		activation.StatusChange <- true
-		time.Sleep(retry)
+		if activation.Network == PapiNetworkStaging && retry > time.Minute {
+			retry = time.Minute
+		}
+
+		if err != nil {
+			activation.StatusChange <- false
+			return false
+		}
+
+		if currentStatus != activation.Status {
+			currentStatus = activation.Status
+			activation.StatusChange <- true
+		}
 	}
 
-	activation.StatusChange <- true
 	return true
 }
 
