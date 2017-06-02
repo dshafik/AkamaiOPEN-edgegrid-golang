@@ -1,7 +1,11 @@
 package edgegrid
 
 import (
+	"errors"
 	"fmt"
+	"net/url"
+	"strings"
+	"time"
 
 	"github.com/akamai-open/AkamaiOPEN-edgegrid-golang/edgegrid/json"
 )
@@ -96,21 +100,59 @@ func (edgeHostnames *PapiEdgeHostnames) GetEdgeHostnames(contract *PapiContract,
 	return nil
 }
 
+func (edgeHostnames *PapiEdgeHostnames) FindEdgeHostname(edgeHostname *PapiEdgeHostname) (*PapiEdgeHostname, error) {
+	if edgeHostname.DomainSuffix == "" && edgeHostname.EdgeHostnameDomain != "" {
+		edgeHostname.DomainSuffix = "edgesuite.net"
+		if strings.HasSuffix(edgeHostname.EdgeHostnameDomain, "edgekey.net") {
+			edgeHostname.DomainSuffix = "edgekey.net"
+		}
+	}
+
+	if edgeHostname.DomainPrefix == "" && edgeHostname.EdgeHostnameDomain != "" {
+		edgeHostname.DomainPrefix = strings.TrimSuffix(edgeHostname.EdgeHostnameDomain, "."+edgeHostname.DomainSuffix)
+	}
+
+	if len(edgeHostnames.EdgeHostnames.Items) == 0 {
+		return nil, errors.New("no hostnames found, did you call GetHostnames()?")
+	}
+
+	for _, eHn := range edgeHostnames.EdgeHostnames.Items {
+		if (eHn.DomainPrefix == edgeHostname.DomainPrefix && eHn.DomainSuffix == edgeHostname.DomainSuffix) || eHn.EdgeHostnameID == edgeHostname.EdgeHostnameID {
+			return eHn, nil
+		}
+	}
+
+	return nil, nil
+}
+
+func (edgeHostnames *PapiEdgeHostnames) AddEdgeHostname(edgeHostname *PapiEdgeHostname) {
+	found, err := edgeHostnames.FindEdgeHostname(edgeHostname)
+
+	if err != nil || found == nil {
+		edgeHostnames.EdgeHostnames.Items = append(edgeHostnames.EdgeHostnames.Items, edgeHostname)
+	}
+
+	if err == nil && found != nil && found.EdgeHostnameID == edgeHostname.EdgeHostnameID {
+		*found = *edgeHostname
+	}
+}
+
 // PapiEdgeHostname represents an Edge Hostname resource
 type PapiEdgeHostname struct {
 	resource
 	parent                 *PapiEdgeHostnames
-	EdgeHostnameID         string `json:"edgeHostnameId,omitempty"`
-	EdgeHostnameDomain     string `json:"edgeHostnameDomain,omitempty"`
-	ProductID              string `json:"productId"`
-	DomainPrefix           string `json:"domainPrefix"`
-	DomainSuffix           string `json:"domainSuffix"`
-	Status                 string `json:"status,omitempty"`
-	Secure                 bool   `json:"secure,omitempty"`
-	IPVersionBehavior      string `json:"ipVersionBehavior,omitempty"`
-	MapDetailsSerialNumber int    `json:"mapDetails:serialNumber,omitempty"`
-	MapDetailsSlotNumber   int    `json:"mapDetails:slotNumber,omitempty"`
-	MapDetailsMapDomain    string `json:"mapDetails:mapDomain,omitempty"`
+	EdgeHostnameID         string          `json:"edgeHostnameId,omitempty"`
+	EdgeHostnameDomain     string          `json:"edgeHostnameDomain,omitempty"`
+	ProductID              string          `json:"productId"`
+	DomainPrefix           string          `json:"domainPrefix"`
+	DomainSuffix           string          `json:"domainSuffix"`
+	Status                 PapiStatusValue `json:"status,omitempty"`
+	Secure                 bool            `json:"secure,omitempty"`
+	IPVersionBehavior      string          `json:"ipVersionBehavior,omitempty"`
+	MapDetailsSerialNumber int             `json:"mapDetails:serialNumber,omitempty"`
+	MapDetailsSlotNumber   int             `json:"mapDetails:slotNumber,omitempty"`
+	MapDetailsMapDomain    string          `json:"mapDetails:mapDomain,omitempty"`
+	StatusChange           chan bool       `json:"-"`
 }
 
 // NewPapiEdgeHostname creates a new PapiEdgeHostname
@@ -118,6 +160,11 @@ func NewPapiEdgeHostname(edgeHostnames *PapiEdgeHostnames) *PapiEdgeHostname {
 	edgeHostname := &PapiEdgeHostname{parent: edgeHostnames}
 	edgeHostname.Init()
 	return edgeHostname
+}
+
+func (edgeHostname *PapiEdgeHostname) Init() {
+	edgeHostname.Complete = make(chan bool, 1)
+	edgeHostname.StatusChange = make(chan bool, 1)
 }
 
 // GetEdgeHostname populates PapiEdgeHostname with data
@@ -144,6 +191,23 @@ func (edgeHostname *PapiEdgeHostname) GetEdgeHostname(options string) error {
 	}
 
 	if res.IsError() {
+		if res.StatusCode == 404 {
+			// Check collection for current hostname
+			contract := NewPapiContract(NewPapiContracts(edgeHostname.parent.service))
+			contract.ContractID = edgeHostname.parent.ContractID
+			group := NewPapiGroup(NewPapiGroups(edgeHostname.parent.service))
+			group.GroupID = edgeHostname.parent.GroupID
+
+			edgeHostname.parent.GetEdgeHostnames(contract, group, "")
+			newEdgeHostname, err := edgeHostname.parent.FindEdgeHostname(edgeHostname)
+			if err != nil || newEdgeHostname == nil {
+				return NewAPIError(res)
+			}
+
+			*edgeHostname = *newEdgeHostname
+			return nil
+		}
+
 		return NewAPIError(res)
 	}
 
@@ -188,28 +252,62 @@ func (edgeHostname *PapiEdgeHostname) Save(options string) error {
 		return err
 	}
 
-	res, err = edgeHostname.parent.service.client.Get(
-		location["edgeHostnameLink"].(string),
-	)
-
-	if err != nil {
-		return err
+	// A 404 is returned until the hostname is valid, so just pull the new ID out for now
+	url, _ := url.Parse(location["edgeHostnameLink"].(string))
+	for _, part := range strings.Split(url.Path, "/") {
+		if strings.HasPrefix(part, "ehn_") {
+			edgeHostname.EdgeHostnameID = part
+		}
 	}
 
-	if res.IsError() {
-		return NewAPIError(res)
-	}
-
-	edgeHostnames := NewPapiEdgeHostnames(edgeHostname.parent.service)
-	if err = res.BodyJSON(edgeHostnames); err != nil {
-		return err
-	}
-
-	newEdgehostname := edgeHostnames.EdgeHostnames.Items[0]
-	newEdgehostname.parent = edgeHostname.parent
-	edgeHostname.parent.EdgeHostnames.Items = append(edgeHostname.parent.EdgeHostnames.Items, edgeHostnames.EdgeHostnames.Items...)
-
-	*edgeHostname = *newEdgehostname
+	edgeHostname.parent.AddEdgeHostname(edgeHostname)
 
 	return nil
+}
+
+// PollStatus will responsibly poll till the property is active or an error occurs
+//
+// The PapiEdgeHostname.StatusChange is a channel that can be used to
+// block on status changes. If a new valid status is returned, true will
+// be sent to the channel, otherwise, false will be sent.
+//
+//	go edgeHostname.PollStatus("")
+//	for edgeHostname.Status != edgegrid.PapiStatusActive {
+//		select {
+//		case statusChanged := <-edgeHostname.StatusChange:
+//			if statusChanged == false {
+//				break
+//			}
+//		case <-time.After(time.Minute * 30):
+//			break
+//		}
+//	}
+//
+//	if edgeHostname.Status == edgegrid.PapiStatusActive {
+//		// EdgeHostname activated successfully
+//	}
+func (edgeHostname *PapiEdgeHostname) PollStatus(options string) bool {
+	currentStatus := edgeHostname.Status
+	var retry time.Duration = 0
+	for currentStatus != PapiStatusActive {
+		time.Sleep(retry)
+		if retry == 0 {
+			retry = time.Minute * 3
+		}
+
+		retry -= time.Minute
+
+		err := edgeHostname.GetEdgeHostname(options)
+		if err != nil {
+			edgeHostname.StatusChange <- false
+			return false
+		}
+
+		if currentStatus != edgeHostname.Status {
+			edgeHostname.StatusChange <- true
+		}
+		currentStatus = edgeHostname.Status
+	}
+
+	return true
 }
