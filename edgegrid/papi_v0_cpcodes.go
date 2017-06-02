@@ -103,6 +103,27 @@ func (cpcodes *PapiCpCodes) GetCpCodes() error {
 	return nil
 }
 
+func (cpcodes *PapiCpCodes) FindCpCode(nameOrId string) (*PapiCpCode, error) {
+	if len(cpcodes.CpCodes.Items) == 0 {
+		err := cpcodes.GetCpCodes()
+		if err != nil {
+			return nil, err
+		}
+
+		if len(cpcodes.CpCodes.Items) == 0 {
+			return nil, fmt.Errorf("unable to fetch CP codes for group/contract")
+		}
+	}
+
+	for _, cpcode := range cpcodes.CpCodes.Items {
+		if cpcode.CpcodeID == nameOrId || cpcode.CpcodeID == "cpc_"+nameOrId || cpcode.CpcodeName == nameOrId {
+			return cpcode, nil
+		}
+	}
+
+	return nil, nil
+}
+
 // NewCpCode creates a new *PapiCpCode associated with this *PapiCpCodes as it's parent.
 func (cpcodes *PapiCpCodes) NewCpCode() *PapiCpCode {
 	cpcode := NewPapiCpCode(cpcodes)
