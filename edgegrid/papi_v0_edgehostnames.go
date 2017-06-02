@@ -58,7 +58,10 @@ func (edgeHostnames *PapiEdgeHostnames) NewEdgeHostname() *PapiEdgeHostname {
 // API Docs: https://developer.akamai.com/api/luna/papi/resources.html#listedgehostnames
 // Endpoint: GET /papi/v0/edgehostnames/{?contractId,groupId,options}
 func (edgeHostnames *PapiEdgeHostnames) GetEdgeHostnames(contract *PapiContract, group *PapiGroup, options string) error {
-	if contract == nil {
+	if contract == nil && group == nil {
+		return errors.New("function requires at least \"group\" argument")
+	}
+	if contract == nil && group != nil {
 		contract = NewPapiContract(NewPapiContracts(edgeHostnames.service))
 		contract.ContractID = group.ContractIDs[0]
 	}
