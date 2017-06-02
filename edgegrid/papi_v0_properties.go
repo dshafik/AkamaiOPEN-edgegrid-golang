@@ -275,10 +275,10 @@ func (property *PapiProperty) GetVersions() (*PapiVersions, error) {
 // API Docs: https://developer.akamai.com/api/luna/papi/resources.html#getthelatestversion
 // Endpoint: GET /papi/v0/properties/{propertyId}/versions/latest{?contractId,groupId,activatedOn}
 func (property *PapiProperty) GetLatestVersion(activatedOn PapiNetworkValue) (*PapiVersion, error) {
-	versions, err := property.GetVersions()
-	if err != nil {
-		return nil, err
-	}
+	versions := NewPapiVersions(property.parent.service)
+	versions.PropertyID = property.PropertyID
+	versions.GroupID = property.Group.GroupID
+	versions.ContractID = property.Contract.ContractID
 
 	return versions.GetLatestVersion(activatedOn)
 }
