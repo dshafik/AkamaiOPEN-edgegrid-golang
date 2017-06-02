@@ -255,6 +255,8 @@ func (rules *PapiRules) GetAllRules() []*PapiRule {
 // API Docs: https://developer.akamai.com/api/luna/papi/resources.html#updatearuletree
 // Endpoint: PUT /papi/v0/properties/{propertyId}/versions/{propertyVersion}/rules/{?contractId,groupId}
 func (rules *PapiRules) Save() error {
+	rules.Errors = []*PapiRuleErrors{}
+
 	// /papi/v0/properties/{propertyId}/versions/{propertyVersion}/rules/{?contractId,groupId}
 	res, err := rules.service.client.PutJSON(
 		fmt.Sprintf(
