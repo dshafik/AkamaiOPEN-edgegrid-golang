@@ -98,12 +98,19 @@ func (hostnames *PapiHostnames) GetHostnames(version *PapiVersion) error {
 	return nil
 }
 
+// NewHostname creates a new PapiHostname within a given PapiHostnames
+func (hostnames *PapiHostnames) NewHostname() *PapiHostname {
+	hostname := NewPapiHostname(hostnames)
+	hostnames.Hostnames.Items = append(hostnames.Hostnames.Items, hostname)
+	return hostname
+}
+
 // Save updates a properties hostnames
 func (hostnames *PapiHostnames) Save() error {
 	req, err := hostnames.service.client.NewJSONRequest(
 		"PUT",
 		fmt.Sprintf(
-			"/papi/v0/properties/%s/versions/%d/hostnames?contractId=%s&groupId%s",
+			"/papi/v0/properties/%s/versions/%d/hostnames?contractId=%s&groupId=%s",
 			hostnames.PropertyID,
 			hostnames.PropertyVersion,
 			hostnames.ContractID,
@@ -115,8 +122,6 @@ func (hostnames *PapiHostnames) Save() error {
 	if err != nil {
 		return err
 	}
-
-	req.Header.Set("If-Match", hostnames.Etag)
 
 	res, err := hostnames.service.client.Do(req)
 	if err != nil {
