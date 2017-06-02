@@ -96,31 +96,6 @@ func (versions *PapiVersions) GetVersions(property *PapiProperty) error {
 // API Docs: https://developer.akamai.com/api/luna/papi/resources.html#getthelatestversion
 // Endpoint: GET /papi/v0/properties/{propertyId}/versions/latest{?contractId,groupId,activatedOn}
 func (versions *PapiVersions) GetLatestVersion(activatedOn PapiNetworkValue) (*PapiVersion, error) {
-	latest := NewPapiVersion(versions)
-
-	if len(versions.Versions.Items) > 0 {
-		for _, version := range versions.Versions.Items {
-			if version.PropertyVersion > latest.PropertyVersion {
-				if activatedOn == "" {
-					latest = version
-					continue
-				}
-
-				if activatedOn == PapiNetworkProduction && version.ProductionStatus == PapiStatusActive {
-					latest = version
-					continue
-				}
-
-				if activatedOn == PapiNetworkStaging && version.StagingStatus == PapiStatusActive {
-					latest = version
-					continue
-				}
-			}
-		}
-
-		return latest, nil
-	}
-
 	if activatedOn != "" {
 		activatedOn = "&activatedOn=" + activatedOn
 	}
@@ -143,6 +118,7 @@ func (versions *PapiVersions) GetLatestVersion(activatedOn PapiNetworkValue) (*P
 		return nil, NewAPIError(res)
 	}
 
+	latest := NewPapiVersion(versions)
 	if err := res.BodyJSON(latest); err != nil {
 		return nil, err
 	}
@@ -271,9 +247,10 @@ func (version *PapiVersion) Save() error {
 
 	res, err := version.parent.service.client.PostJSON(
 		fmt.Sprintf(
-			"/papi/v0/properties/{propertyId}/versions/?contractId=%s&groupId=%s",
+			"/papi/v0/properties/%s/versions/?contractId=%s&groupId=%s",
+			version.parent.PropertyID,
 			version.parent.ContractID,
-			version.parent.ContractID,
+			version.parent.GroupID,
 		),
 		version,
 	)
