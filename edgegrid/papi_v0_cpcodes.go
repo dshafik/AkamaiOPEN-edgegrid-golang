@@ -173,13 +173,15 @@ func (cpcode *PapiCpCode) GetCpCode() error {
 		return NewAPIError(res)
 	}
 
-	newCpcode := NewPapiCpCode(cpcode.parent)
-	if err = res.BodyJSON(newCpcode); err != nil {
+	newCpcodes := NewPapiCpCodes(cpcode.parent.service, nil, nil)
+	if err = res.BodyJSON(newCpcodes); err != nil {
 		return err
 	}
+	if len(newCpcodes.CpCodes.Items) == 0 {
+		return fmt.Errorf("CP Code \"%s\" not found", cpcode.CpcodeID)
+	}
 
-	*cpcode = *newCpcode
-
+	*cpcode = *newCpcodes.CpCodes.Items[0]
 	return nil
 }
 
