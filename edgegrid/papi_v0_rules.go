@@ -417,15 +417,17 @@ func (rules *PapiRules) FindBehavior(path string) (*PapiBehavior, error) {
 // PapiRule represents a property rule resource
 type PapiRule struct {
 	resource
-	parent         *PapiRules
-	Depth          int             `json:"-"`
-	Name           string          `json:"name"`
-	Criteria       []*PapiCriteria `json:"criteria,omitempty"`
-	Behaviors      []*PapiBehavior `json:"behaviors,omitempty"`
-	Children       []*PapiRule     `json:"children,omitempty"`
-	Comment        string          `json:"comment,omitempty"`
-	CriteriaLocked bool            `json:"criteriaLocked,omitempty"`
-	Options        struct {
+	parent              *PapiRules
+	Depth               int                              `json:"-"`
+	Name                string                           `json:"name"`
+	Criteria            []*PapiCriteria                  `json:"criteria,omitempty"`
+	Behaviors           []*PapiBehavior                  `json:"behaviors,omitempty"`
+	Children            []*PapiRule                      `json:"children,omitempty"`
+	Comment             string                           `json:"comment,omitempty"`
+	CriteriaLocked      bool                             `json:"criteriaLocked,omitempty"`
+	CriteriaMustSatisfy PapiRuleCriteriaMustSatisfyValue `json:"criteriaMustSatisfy,omitempty"`
+	UUID                string                           `json:"uuid,omitempty"`
+	Options             struct {
 		IsSecure bool `json:"is_secure,omitempty"`
 	} `json:"options,omitempty"`
 }
@@ -688,3 +690,10 @@ func NewPapiRuleErrors() *PapiRuleErrors {
 
 	return ruleErrors
 }
+
+type PapiRuleCriteriaMustSatisfyValue string
+
+const (
+	PapiRuleCriteriaMustSatisfyAll PapiRuleCriteriaMustSatisfyValue = "any"
+	PapiRuleCriteriaMustSatisfyAny PapiRuleCriteriaMustSatisfyValue = "all"
+)
