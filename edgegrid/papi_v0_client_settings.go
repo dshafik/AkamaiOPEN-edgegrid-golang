@@ -30,12 +30,9 @@ func (clientSettings *PapiClientSettings) GetClientSettings() error {
 		return NewAPIError(res)
 	}
 
-	newClientSettings := NewPapiClientSettings(clientSettings.service)
-	if err := res.BodyJSON(newClientSettings); err != nil {
+	if err := res.BodyJSON(clientSettings); err != nil {
 		return err
 	}
-
-	*clientSettings = *newClientSettings
 
 	return nil
 }
@@ -63,7 +60,7 @@ func (clientSettings *PapiClientSettings) Save() error {
 		return err
 	}
 
-	*clientSettings = *newClientSettings
+	clientSettings.RuleFormat = newClientSettings.RuleFormat
 
 	return nil
 }

@@ -38,12 +38,9 @@ func (ruleFormats *PapiRuleFormats) GetRuleFormats() error {
 		return NewAPIError(res)
 	}
 
-	newRuleFormats := NewPapiRuleFormats(ruleFormats.service)
-	if err := res.BodyJSON(newRuleFormats); err != nil {
+	if err := res.BodyJSON(ruleFormats); err != nil {
 		return err
 	}
-
-	*ruleFormats = *newRuleFormats
 
 	return nil
 }

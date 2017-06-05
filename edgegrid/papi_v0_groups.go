@@ -55,12 +55,9 @@ func (groups *PapiGroups) GetGroups() error {
 		return NewAPIError(res)
 	}
 
-	newGroups := NewPapiGroups(groups.service)
-	if err = res.BodyJSON(newGroups); err != nil {
+	if err = res.BodyJSON(groups); err != nil {
 		return err
 	}
-
-	*groups = *newGroups
 
 	return nil
 }

@@ -69,12 +69,9 @@ func (properties *PapiProperties) GetProperties(contract *PapiContract, group *P
 		return NewAPIError(res)
 	}
 
-	newProperties := NewPapiProperties(properties.service)
-	if err = res.BodyJSON(newProperties); err != nil {
+	if err = res.BodyJSON(properties); err != nil {
 		return err
 	}
-
-	*properties = *newProperties
 
 	return nil
 }
@@ -190,12 +187,24 @@ func (property *PapiProperty) GetProperty() error {
 		return NewAPIError(res)
 	}
 
-	newProperty := NewPapiProperty(property.parent)
-	if err := res.BodyJSON(newProperty); err != nil {
+	newProperties := NewPapiProperties(property.parent.service)
+	if err := res.BodyJSON(newProperties); err != nil {
 		return err
 	}
 
-	*property = *newProperty
+	property.AccountID = newProperties.Properties.Items[0].AccountID
+	property.Contract = newProperties.Properties.Items[0].Contract
+	property.Group = newProperties.Properties.Items[0].Group
+	property.ContractID = newProperties.Properties.Items[0].ContractID
+	property.GroupID = newProperties.Properties.Items[0].GroupID
+	property.PropertyID = newProperties.Properties.Items[0].PropertyID
+	property.PropertyName = newProperties.Properties.Items[0].PropertyName
+	property.LatestVersion = newProperties.Properties.Items[0].LatestVersion
+	property.StagingVersion = newProperties.Properties.Items[0].StagingVersion
+	property.ProductionVersion = newProperties.Properties.Items[0].ProductionVersion
+	property.Note = newProperties.Properties.Items[0].Note
+	property.ProductID = newProperties.Properties.Items[0].ProductID
+	property.CloneFrom = newProperties.Properties.Items[0].CloneFrom
 
 	return nil
 }
@@ -379,10 +388,19 @@ func (property *PapiProperty) Save() error {
 		return err
 	}
 
-	newProperty := properties.Properties.Items[0]
-	newProperty.parent = property.parent
-
-	*property = *newProperty
+	property.AccountID = properties.Properties.Items[0].AccountID
+	property.Contract = properties.Properties.Items[0].Contract
+	property.Group = properties.Properties.Items[0].Group
+	property.ContractID = properties.Properties.Items[0].ContractID
+	property.GroupID = properties.Properties.Items[0].GroupID
+	property.PropertyID = properties.Properties.Items[0].PropertyID
+	property.PropertyName = properties.Properties.Items[0].PropertyName
+	property.LatestVersion = properties.Properties.Items[0].LatestVersion
+	property.StagingVersion = properties.Properties.Items[0].StagingVersion
+	property.ProductionVersion = properties.Properties.Items[0].ProductionVersion
+	property.Note = properties.Properties.Items[0].Note
+	property.ProductID = properties.Properties.Items[0].ProductID
+	property.CloneFrom = properties.Properties.Items[0].CloneFrom
 
 	return nil
 }

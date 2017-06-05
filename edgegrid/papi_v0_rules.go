@@ -203,12 +203,9 @@ func (rules *PapiRules) GetRules(property *PapiProperty) error {
 		return NewAPIError(res)
 	}
 
-	newRules := NewPapiRules(property.parent.service)
-	if err = res.BodyJSON(newRules); err != nil {
+	if err = res.BodyJSON(rules); err != nil {
 		return err
 	}
-
-	*rules = *newRules
 
 	return nil
 }
@@ -561,12 +558,9 @@ func (availableCriteria *PapiAvailableCriteria) GetAvailableCriteria(property *P
 		return NewAPIError(res)
 	}
 
-	newAvailableCriteria := NewPapiAvailableCriteria(availableCriteria.service)
-	if err = res.BodyJSON(newAvailableCriteria); err != nil {
+	if err = res.BodyJSON(availableCriteria); err != nil {
 		return err
 	}
-
-	*availableCriteria = *newAvailableCriteria
 
 	return nil
 }
@@ -631,12 +625,9 @@ func (availableBehaviors *PapiAvailableBehaviors) GetAvailableBehaviors(property
 		return NewAPIError(res)
 	}
 
-	newAvailableBehaviors := NewPapiAvailableBehaviors(availableBehaviors.service)
-	if err = res.BodyJSON(newAvailableBehaviors); err != nil {
+	if err = res.BodyJSON(availableBehaviors); err != nil {
 		return err
 	}
-
-	*availableBehaviors = *newAvailableBehaviors
 
 	return nil
 }

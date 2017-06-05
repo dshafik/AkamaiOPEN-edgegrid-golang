@@ -93,12 +93,9 @@ func (cpcodes *PapiCpCodes) GetCpCodes() error {
 		return NewAPIError(res)
 	}
 
-	newCpcodes := NewPapiCpCodes(cpcodes.service, nil, nil)
-	if err = res.BodyJSON(newCpcodes); err != nil {
+	if err = res.BodyJSON(cpcodes); err != nil {
 		return err
 	}
-
-	*cpcodes = *newCpcodes
 
 	return nil
 }
@@ -127,8 +124,21 @@ func (cpcodes *PapiCpCodes) FindCpCode(nameOrId string) (*PapiCpCode, error) {
 // NewCpCode creates a new *PapiCpCode associated with this *PapiCpCodes as it's parent.
 func (cpcodes *PapiCpCodes) NewCpCode() *PapiCpCode {
 	cpcode := NewPapiCpCode(cpcodes)
-	cpcodes.CpCodes.Items = append(cpcodes.CpCodes.Items, cpcode)
+	cpcodes.AddCpCode(cpcode)
 	return cpcode
+}
+
+func (cpcodes *PapiCpCodes) AddCpCode(cpcode *PapiCpCode) {
+	var exists bool
+	for _, cpc := range cpcodes.CpCodes.Items {
+		if cpc == cpcode {
+			exists = true
+		}
+	}
+
+	if !exists {
+		cpcodes.CpCodes.Items = append(cpcodes.CpCodes.Items, cpcode)
+	}
 }
 
 // PapiCpCode represents a single CP Code
@@ -181,7 +191,14 @@ func (cpcode *PapiCpCode) GetCpCode() error {
 		return fmt.Errorf("CP Code \"%s\" not found", cpcode.CpcodeID)
 	}
 
-	*cpcode = *newCpcodes.CpCodes.Items[0]
+	cpcode.CpcodeID = newCpcodes.CpCodes.Items[0].CpcodeID
+	cpcode.CpcodeName = newCpcodes.CpCodes.Items[0].CpcodeName
+	cpcode.ProductID = newCpcodes.CpCodes.Items[0].ProductID
+	cpcode.ProductIDs = newCpcodes.CpCodes.Items[0].ProductIDs
+	cpcode.CreatedDate = newCpcodes.CpCodes.Items[0].CreatedDate
+
+	cpcode.parent.AddCpCode(cpcode)
+
 	return nil
 }
 
@@ -248,9 +265,16 @@ func (cpcode *PapiCpCode) Save() error {
 
 	newCpcode := cpcodes.CpCodes.Items[0]
 	newCpcode.parent = cpcode.parent
-	cpcode.parent.CpCodes.Items = append(cpcode.parent.CpCodes.Items, newCpcode)
 
-	*cpcode = *newCpcode
+	//cpcode.parent.CpCodes.Items = append(cpcode.parent.CpCodes.Items, newCpcode)
+
+	cpcode.CpcodeID = cpcodes.CpCodes.Items[0].CpcodeID
+	cpcode.CpcodeName = cpcodes.CpCodes.Items[0].CpcodeName
+	cpcode.ProductID = cpcodes.CpCodes.Items[0].ProductID
+	cpcode.ProductIDs = cpcodes.CpCodes.Items[0].ProductIDs
+	cpcode.CreatedDate = cpcodes.CpCodes.Items[0].CreatedDate
+
+	cpcode.parent.AddCpCode(cpcode)
 
 	return nil
 }

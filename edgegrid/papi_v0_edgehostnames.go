@@ -90,12 +90,9 @@ func (edgeHostnames *PapiEdgeHostnames) GetEdgeHostnames(contract *PapiContract,
 		return NewAPIError(res)
 	}
 
-	newEdgeHostnames := NewPapiEdgeHostnames(edgeHostnames.service)
-	if err = res.BodyJSON(newEdgeHostnames); err != nil {
+	if err = res.BodyJSON(edgeHostnames); err != nil {
 		return err
 	}
-
-	*edgeHostnames = *newEdgeHostnames
 
 	return nil
 }
@@ -204,19 +201,40 @@ func (edgeHostname *PapiEdgeHostname) GetEdgeHostname(options string) error {
 				return NewAPIError(res)
 			}
 
-			*edgeHostname = *newEdgeHostname
+			edgeHostname.EdgeHostnameID = newEdgeHostname.EdgeHostnameID
+			edgeHostname.EdgeHostnameDomain = newEdgeHostname.EdgeHostnameDomain
+			edgeHostname.ProductID = newEdgeHostname.ProductID
+			edgeHostname.DomainPrefix = newEdgeHostname.DomainPrefix
+			edgeHostname.DomainSuffix = newEdgeHostname.DomainSuffix
+			edgeHostname.Status = newEdgeHostname.Status
+			edgeHostname.Secure = newEdgeHostname.Secure
+			edgeHostname.IPVersionBehavior = newEdgeHostname.IPVersionBehavior
+			edgeHostname.MapDetailsSerialNumber = newEdgeHostname.MapDetailsSerialNumber
+			edgeHostname.MapDetailsSlotNumber = newEdgeHostname.MapDetailsSlotNumber
+			edgeHostname.MapDetailsMapDomain = newEdgeHostname.MapDetailsMapDomain
+
 			return nil
 		}
 
 		return NewAPIError(res)
 	}
 
-	newEdgeHostname := NewPapiEdgeHostname(edgeHostname.parent)
-	if err := res.BodyJSON(newEdgeHostname); err != nil {
+	newEdgeHostnames := NewPapiEdgeHostnames(edgeHostname.parent.service)
+	if err := res.BodyJSON(newEdgeHostnames); err != nil {
 		return err
 	}
 
-	*edgeHostname = *newEdgeHostname
+	edgeHostname.EdgeHostnameID = newEdgeHostnames.EdgeHostnames.Items[0].EdgeHostnameID
+	edgeHostname.EdgeHostnameDomain = newEdgeHostnames.EdgeHostnames.Items[0].EdgeHostnameDomain
+	edgeHostname.ProductID = newEdgeHostnames.EdgeHostnames.Items[0].ProductID
+	edgeHostname.DomainPrefix = newEdgeHostnames.EdgeHostnames.Items[0].DomainPrefix
+	edgeHostname.DomainSuffix = newEdgeHostnames.EdgeHostnames.Items[0].DomainSuffix
+	edgeHostname.Status = newEdgeHostnames.EdgeHostnames.Items[0].Status
+	edgeHostname.Secure = newEdgeHostnames.EdgeHostnames.Items[0].Secure
+	edgeHostname.IPVersionBehavior = newEdgeHostnames.EdgeHostnames.Items[0].IPVersionBehavior
+	edgeHostname.MapDetailsSerialNumber = newEdgeHostnames.EdgeHostnames.Items[0].MapDetailsSerialNumber
+	edgeHostname.MapDetailsSlotNumber = newEdgeHostnames.EdgeHostnames.Items[0].MapDetailsSlotNumber
+	edgeHostname.MapDetailsMapDomain = newEdgeHostnames.EdgeHostnames.Items[0].MapDetailsMapDomain
 
 	return nil
 }

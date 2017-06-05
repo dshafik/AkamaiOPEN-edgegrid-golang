@@ -80,12 +80,9 @@ func (versions *PapiVersions) GetVersions(property *PapiProperty) error {
 		return err
 	}
 
-	newVersions := NewPapiVersions(versions.service)
-	if err = res.BodyJSON(newVersions); err != nil {
+	if err = res.BodyJSON(versions); err != nil {
 		return err
 	}
-
-	*versions = *newVersions
 
 	return nil
 }
@@ -162,7 +159,6 @@ type PapiVersion struct {
 	Note                  string          `json:"note,omitempty"`
 	CreateFromVersion     int             `json:"createFromVersion,omitempty"`
 	CreateFromVersionEtag string          `json:"createFromVersionEtag,omitempty"`
-	Complete              chan bool       `json:"-"`
 }
 
 // NewPapiVersion creates a new PapiVersion
@@ -200,12 +196,21 @@ func (version *PapiVersion) GetVersion(property *PapiProperty, getVersion int) e
 		return NewAPIError(res)
 	}
 
-	newVersion := NewPapiVersion(version.parent)
-	if err := res.BodyJSON(newVersion); err != nil {
+	newVersions := NewPapiVersions(version.parent.service)
+	if err := res.BodyJSON(newVersions); err != nil {
 		return err
 	}
 
-	*version = *newVersion
+	version.PropertyVersion = newVersions.Versions.Items[0].PropertyVersion
+	version.UpdatedByUser = newVersions.Versions.Items[0].UpdatedByUser
+	version.UpdatedDate = newVersions.Versions.Items[0].UpdatedDate
+	version.ProductionStatus = newVersions.Versions.Items[0].ProductionStatus
+	version.StagingStatus = newVersions.Versions.Items[0].StagingStatus
+	version.Etag = newVersions.Versions.Items[0].Etag
+	version.ProductID = newVersions.Versions.Items[0].ProductID
+	version.Note = newVersions.Versions.Items[0].Note
+	version.CreateFromVersion = newVersions.Versions.Items[0].CreateFromVersion
+	version.CreateFromVersionEtag = newVersions.Versions.Items[0].CreateFromVersionEtag
 
 	return nil
 }
@@ -285,11 +290,18 @@ func (version *PapiVersion) Save() error {
 		return err
 	}
 
-	newVersion := versions.Versions.Items[0]
-	newVersion.parent = version.parent
-	version.parent.Versions.Items = append(version.parent.Versions.Items, versions.Versions.Items...)
+	version.PropertyVersion = versions.Versions.Items[0].PropertyVersion
+	version.UpdatedByUser = versions.Versions.Items[0].UpdatedByUser
+	version.UpdatedDate = versions.Versions.Items[0].UpdatedDate
+	version.ProductionStatus = versions.Versions.Items[0].ProductionStatus
+	version.StagingStatus = versions.Versions.Items[0].StagingStatus
+	version.Etag = versions.Versions.Items[0].Etag
+	version.ProductID = versions.Versions.Items[0].ProductID
+	version.Note = versions.Versions.Items[0].Note
+	version.CreateFromVersion = versions.Versions.Items[0].CreateFromVersion
+	version.CreateFromVersionEtag = versions.Versions.Items[0].CreateFromVersionEtag
 
-	*version = *newVersion
+	version.parent.AddVersion(version)
 
 	return nil
 }

@@ -50,12 +50,9 @@ func (activations *PapiActivations) GetActivations(property *PapiProperty) error
 		return NewAPIError(res)
 	}
 
-	newActivations := NewPapiActivations(property.parent.service)
 	if err = res.BodyJSON(activations); err != nil {
 		return err
 	}
-
-	*activations = *newActivations
 
 	return nil
 }
@@ -167,10 +164,21 @@ func (activation *PapiActivation) GetActivation(property *PapiProperty) (time.Du
 		return 0, err
 	}
 
-	newActivation := activations.Activations.Items[0]
-	newActivation.parent = activation.parent
-
-	*activation = *newActivation
+	activation.ActivationID = activations.Activations.Items[0].ActivationID
+	activation.ActivationType = activations.Activations.Items[0].ActivationType
+	activation.AcknowledgeWarnings = activations.Activations.Items[0].AcknowledgeWarnings
+	activation.ComplianceRecord = activations.Activations.Items[0].ComplianceRecord
+	activation.FastPush = activations.Activations.Items[0].FastPush
+	activation.IgnoreHTTPErrors = activations.Activations.Items[0].IgnoreHTTPErrors
+	activation.PropertyName = activations.Activations.Items[0].PropertyName
+	activation.PropertyID = activations.Activations.Items[0].PropertyID
+	activation.PropertyVersion = activations.Activations.Items[0].PropertyVersion
+	activation.Network = activations.Activations.Items[0].Network
+	activation.Status = activations.Activations.Items[0].Status
+	activation.SubmitDate = activations.Activations.Items[0].SubmitDate
+	activation.UpdateDate = activations.Activations.Items[0].UpdateDate
+	activation.Note = activations.Activations.Items[0].Note
+	activation.NotifyEmails = activations.Activations.Items[0].NotifyEmails
 
 	retry, _ := strconv.Atoi(res.Header.Get("Retry-After"))
 	retry *= int(time.Second)
@@ -261,10 +269,21 @@ func (activation *PapiActivation) Save(property *PapiProperty, acknowledgeWarnin
 		return err
 	}
 
-	newActivation := activations.Activations.Items[0]
-	newActivation.parent = activation.parent
-
-	*activation = *newActivation
+	activation.ActivationID = activations.Activations.Items[0].ActivationID
+	activation.ActivationType = activations.Activations.Items[0].ActivationType
+	activation.AcknowledgeWarnings = activations.Activations.Items[0].AcknowledgeWarnings
+	activation.ComplianceRecord = activations.Activations.Items[0].ComplianceRecord
+	activation.FastPush = activations.Activations.Items[0].FastPush
+	activation.IgnoreHTTPErrors = activations.Activations.Items[0].IgnoreHTTPErrors
+	activation.PropertyName = activations.Activations.Items[0].PropertyName
+	activation.PropertyID = activations.Activations.Items[0].PropertyID
+	activation.PropertyVersion = activations.Activations.Items[0].PropertyVersion
+	activation.Network = activations.Activations.Items[0].Network
+	activation.Status = activations.Activations.Items[0].Status
+	activation.SubmitDate = activations.Activations.Items[0].SubmitDate
+	activation.UpdateDate = activations.Activations.Items[0].UpdateDate
+	activation.Note = activations.Activations.Items[0].Note
+	activation.NotifyEmails = activations.Activations.Items[0].NotifyEmails
 
 	return nil
 }
@@ -350,7 +369,22 @@ func (activation *PapiActivation) Cancel(property *PapiProperty) error {
 		return err
 	}
 
-	*activation = *newActivations.Activations.Items[0]
+	activation.ActivationID = newActivations.Activations.Items[0].ActivationID
+	activation.ActivationType = newActivations.Activations.Items[0].ActivationType
+	activation.AcknowledgeWarnings = newActivations.Activations.Items[0].AcknowledgeWarnings
+	activation.ComplianceRecord = newActivations.Activations.Items[0].ComplianceRecord
+	activation.FastPush = newActivations.Activations.Items[0].FastPush
+	activation.IgnoreHTTPErrors = newActivations.Activations.Items[0].IgnoreHTTPErrors
+	activation.PropertyName = newActivations.Activations.Items[0].PropertyName
+	activation.PropertyID = newActivations.Activations.Items[0].PropertyID
+	activation.PropertyVersion = newActivations.Activations.Items[0].PropertyVersion
+	activation.Network = newActivations.Activations.Items[0].Network
+	activation.Status = newActivations.Activations.Items[0].Status
+	activation.SubmitDate = newActivations.Activations.Items[0].SubmitDate
+	activation.UpdateDate = newActivations.Activations.Items[0].UpdateDate
+	activation.Note = newActivations.Activations.Items[0].Note
+	activation.NotifyEmails = newActivations.Activations.Items[0].NotifyEmails
+	activation.StatusChange = newActivations.Activations.Items[0].StatusChange
 
 	return nil
 }

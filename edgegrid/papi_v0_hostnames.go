@@ -88,12 +88,9 @@ func (hostnames *PapiHostnames) GetHostnames(version *PapiVersion) error {
 		return NewAPIError(res)
 	}
 
-	newHostnames := NewPapiHostnames(hostnames.service)
-	if err = res.BodyJSON(newHostnames); err != nil {
+	if err = res.BodyJSON(hostnames); err != nil {
 		return err
 	}
-
-	*hostnames = *newHostnames
 
 	return nil
 }
@@ -132,12 +129,9 @@ func (hostnames *PapiHostnames) Save() error {
 		return NewAPIError(res)
 	}
 
-	newHostnames := NewPapiHostnames(hostnames.service)
-	if err = res.BodyJSON(newHostnames); err != nil {
+	if err = res.BodyJSON(hostnames); err != nil {
 		return err
 	}
-
-	*hostnames = *newHostnames
 
 	return nil
 }

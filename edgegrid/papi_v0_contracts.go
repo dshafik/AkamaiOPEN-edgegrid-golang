@@ -58,16 +58,13 @@ func (contracts *PapiContracts) GetContracts() error {
 		return NewAPIError(res)
 	}
 
-	newContracts := NewPapiContracts(contracts.service)
-	if err = res.BodyJSON(newContracts); err != nil {
+	if err = res.BodyJSON(contracts); err != nil {
 		return err
 	}
 
 	if err != nil {
 		return err
 	}
-
-	*contracts = *newContracts
 
 	return nil
 }
